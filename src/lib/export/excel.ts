@@ -2,14 +2,18 @@ import { formatFreeThrows } from "@/lib/stats";
 import type { TeamStats } from "@/lib/stats";
 import type { Game, GameEvent } from "@/lib/types";
 
+import { deliver, type DeliverResult } from "./deliver";
 import { EXCEL_HEADERS, eventRows, exportFilename } from "./rows";
+
+const XLSX_MIME =
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 
 export async function downloadExcel(
   game: Game,
   events: readonly GameEvent[],
   us: TeamStats,
   them: TeamStats,
-): Promise<void> {
+): Promise<DeliverResult> {
   const XLSX = await import("xlsx");
   const wb = XLSX.utils.book_new();
 
@@ -40,5 +44,7 @@ export async function downloadExcel(
   ]);
   XLSX.utils.book_append_sheet(wb, summary, "Riepilogo");
 
-  XLSX.writeFile(wb, exportFilename(game, "xlsx"));
+  const data = XLSX.write(wb, { type: "array", bookType: "xlsx" });
+  const blob = new Blob([data], { type: XLSX_MIME });
+  return deliver(blob, exportFilename(game, "xlsx"), XLSX_MIME);
 }

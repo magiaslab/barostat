@@ -53,14 +53,13 @@ export function ExportPanel({
     if (busy) return;
     setBusy(true);
     try {
-      if (mode === "xlsx") {
-        await downloadExcel(game, events, us, them);
-        onToast("Excel scaricato");
-      } else {
-        await downloadPdf(game, events, us, them);
-        onToast("PDF scaricato");
-      }
+      const result =
+        mode === "xlsx"
+          ? await downloadExcel(game, events, us, them)
+          : await downloadPdf(game, events, us, them);
+      onToast(result === "shared" ? "Condiviso" : "Scaricato");
     } catch (err) {
+      if (err instanceof Error && err.name === "AbortError") return;
       console.error(err);
       onToast("Download non riuscito");
     } finally {

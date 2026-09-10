@@ -9,6 +9,7 @@ import {
   type GameEvent,
 } from "@/lib/types";
 
+import { deliver, type DeliverResult } from "./deliver";
 import { exportFilename } from "./rows";
 
 const US_MARK: [number, number, number] = [42, 159, 214];
@@ -21,7 +22,7 @@ export async function downloadPdf(
   events: readonly GameEvent[],
   us: TeamStats,
   them: TeamStats,
-): Promise<void> {
+): Promise<DeliverResult> {
   const { jsPDF } = await import("jspdf");
   const doc = new jsPDF({ unit: "mm", format: "a4", orientation: "portrait" });
   const pageW = 210;
@@ -96,7 +97,11 @@ export async function downloadPdf(
   y += 6;
   drawTable(doc, y, margin, pageW, ascii(game.opponent.toUpperCase()), themRows);
 
-  doc.save(exportFilename(game, "pdf"));
+  return deliver(
+    doc.output("blob"),
+    exportFilename(game, "pdf"),
+    "application/pdf",
+  );
 }
 
 function drawBar(

@@ -57,4 +57,13 @@ describe("gameSlug", () => {
       "barostat-basket-cernusco-2026-09-12.xlsx",
     );
   });
+
+  test("normalizza le lettere accentate", () => {
+    expect(gameSlug("Cassanò")).toBe("cassano");
+    expect(gameSlug("Virtus Cassanò d'Adda")).toBe("virtus-cassano-d-adda");
+  });
+
+  test("l'apostrofo separa le parole nello slug", () => {
+    expect(gameSlug("d'Adda")).toBe("d-adda");
+  });
 });

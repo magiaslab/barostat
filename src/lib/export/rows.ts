@@ -31,10 +31,11 @@ const EXCEL_BAND: { readonly [B in Band]: string } = {
 
 export function gameSlug(opponent: string): string {
   const slug = opponent
-    .trim()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
     .toLowerCase()
-    .replace(/\s+/g, "-")
-    .replace(/[^a-z0-9-]/g, "");
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-|-$/g, "");
   return slug || "partita";
 }
 
