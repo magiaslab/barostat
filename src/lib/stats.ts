@@ -1,5 +1,6 @@
 import {
   BANDS,
+  PERIODS,
   type Band,
   type GameEvent,
   type Outcome,
@@ -200,6 +201,20 @@ export function formatPercent(part: number, total: number): string {
 
 export function formatFreeThrows(ft: FreeThrows): string {
   return `${ft.made}/${ft.attempted}`;
+}
+
+/** Quarti in cui c'è almeno un evento live, in ordine Q1→TS. */
+export function usedPeriods(
+  events: readonly GameEvent[],
+  gameId?: string,
+): Period[] {
+  const seen = new Set<Period>();
+  for (const event of events) {
+    if (!isLive(event)) continue;
+    if (gameId !== undefined && event.gameId !== gameId) continue;
+    seen.add(event.period);
+  }
+  return PERIODS.filter((period) => seen.has(period));
 }
 
 export function teamStats(

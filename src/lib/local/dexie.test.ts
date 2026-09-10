@@ -6,6 +6,7 @@ import { afterEach, describe, expect, test } from "vitest";
 import {
   appendEvent,
   closeDb,
+  closeGame,
   createGame,
   getGame,
   listGames,
@@ -234,5 +235,19 @@ describe("partite Dexie", () => {
 
     const listed = await listGames();
     expect(listed.map((game) => game.opponent)).toEqual(["Cernusco", "Seveso"]);
+  });
+
+  test("closeGame imposta closedAt e resta idempotente", async () => {
+    const created = await createGame({
+      opponent: "Cernusco",
+      date: "2026-09-10",
+      venue: "home",
+      competition: "cup",
+    });
+    const closed = await closeGame(created.id);
+    expect(closed?.closedAt).toEqual(expect.any(Number));
+    const again = await closeGame(created.id);
+    expect(again?.closedAt).toBe(closed?.closedAt);
+    expect(await closeGame("inesistente")).toBeUndefined();
   });
 });

@@ -13,6 +13,7 @@ import {
   score,
   teamStats,
   totalPoints,
+  usedPeriods,
 } from "./stats";
 import type { Band, GameEvent, Outcome, Period, Team } from "./types";
 
@@ -246,5 +247,15 @@ describe("seed del mockup 31–30", () => {
     expect(stats.percentsByBand[0]).toBe("39%");
     expect(stats.percentsByBand[1]).toBe("39%");
     expect(stats.percentsByBand[2]).toBe("23%");
+  });
+
+  test("usedPeriods elenca solo i quarti con eventi live, in ordine", () => {
+    expect(usedPeriods(events)).toEqual([0, 1]);
+    expect(
+      usedPeriods([
+        ...events,
+        event("us", 0, 2, { period: 3, deletedAt: 1 }),
+      ]),
+    ).toEqual([0, 1]);
   });
 });

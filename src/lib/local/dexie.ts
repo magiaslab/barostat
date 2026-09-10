@@ -102,6 +102,16 @@ export async function getGame(id: string): Promise<Game | undefined> {
   return getDb().games.get(id);
 }
 
+export async function closeGame(id: string): Promise<Game | undefined> {
+  const store = getDb();
+  const game = await store.games.get(id);
+  if (!game) return undefined;
+  if (game.closedAt !== null) return game;
+  const closed: Game = { ...game, closedAt: Date.now() };
+  await store.games.put(closed);
+  return closed;
+}
+
 export async function listGames(): Promise<Game[]> {
   const rows = await getDb().games.toArray();
   return rows.sort((a, b) => {

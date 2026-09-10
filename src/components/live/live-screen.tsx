@@ -178,9 +178,9 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
           >
             {scope === "period" ? "Quarto" : "Partita"}
           </button>
-          <button type="button" className="btn primary" disabled>
+          <Link href={`/games/${gameId}/report`} className="btn primary">
             Riepilogo
-          </button>
+          </Link>
         </div>
       </div>
     </div>
