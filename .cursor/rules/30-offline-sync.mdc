@@ -1,0 +1,46 @@
+---
+description: Regole local-first, storage su IndexedDB e sincronizzazione. Leggere prima di toccare persistenza, coda di sync, service worker o rotte API.
+globs: src/lib/local/**,src/lib/db/**,src/app/api/**,src/app/(app)/games/**,public/sw.js,src/sw.ts
+---
+
+# Local-first e sincronizzazione
+
+## Il presupposto
+
+**L'app dà per scontato che la rete non ci sia** e considera la connessione un bonus.
+
+Dal 2025 il referto elettronico è obbligatorio in Italia, quindi ogni palestra ha una linea — ma in trasferta l'accesso dipende dalla squadra di casa, che può non darlo. Sul piano tecnico "linea che esiste ma non ci danno la password" è identico a "nessuna linea". Perciò: non scrivere mai codice che tenti la rete e ripieghi sul locale. **Si scrive sempre e solo in locale; la sincronizzazione è un processo separato che gira quando può.**
+
+## Come si scrive
+
+1. Il tap genera l'evento con uuid client e lo scrive in **Dexie** (IndexedDB).
+2. La UI si aggiorna **dallo stato locale**, mai da una risposta del server.
+3. Una coda separata invia gli eventi non ancora confermati a `POST /api/sync`, a batch.
+4. La rotta è **idempotente sull'uuid**: `ON CONFLICT (id) DO NOTHING`. Un batch reinviato non duplica nulla.
+5. La conferma marca gli eventi come sincronizzati in locale.
+
+Un solo device registra per partita (vedi `00-progetto.mdc`), quindi la sync è un *append* puro: **niente merge, niente risoluzione di conflitti**.
+
+## Dimensioni reali
+
+Una partita è ~70 eventi, pochi kilobyte. Quando la rete torna, anche un hotspot debole la manda in un istante. **Non implementare** compressione, sync parziale, paginazione o backoff elaborati: sono soluzioni a un problema che questo progetto non ha.
+
+## Stato dei dati, sempre visibile
+
+In testa alla schermata live: pallino verde **Sincronizzato** oppure ambra **Offline · salvato sul tablet**, col numero di eventi in coda. Serve a una cosa sola: chi segna deve poter alzare gli occhi e sapere che due quarti di lavoro non stanno per svanire. Non nasconderlo dietro un menu e non mostrarlo come toast che sparisce.
+
+Non usare `navigator.onLine` come unica verità: dice solo che esiste un'interfaccia di rete, non che il server risponde. Lo stato vero è l'esito dell'ultima sincronizzazione.
+
+## PWA — l'installazione protegge i dati
+
+Il manifest deve permettere l'installazione su schermata Home, e l'app deve invitare a farlo al primo avvio su un device nuovo.
+
+Non è cosmesi: **su iOS, Safari cancella lo storage dei siti non installati dopo circa 7 giorni di inattività**, e fra una partita e l'altra passa una settimana. Una PWA installata è esente da quella regola. Un tablet usato aprendo il link nel browser prima o poi perde una partita non sincronizzata.
+
+Il service worker deve mettere in cache la shell dell'app e le rotte delle partite, così l'app si apre e funziona a rete spenta anche a freddo.
+
+## Cosa non deve mai succedere
+
+- Un tap che non produce un evento locale perché una chiamata di rete è fallita.
+- Uno spinner che blocca la registrazione in attesa del server.
+- La perdita di eventi al ricaricamento della pagina: Dexie va scritto in modo sincrono rispetto al tap, non in un `useEffect` differito.

@@ -1,0 +1,79 @@
+---
+description: Dominio, lessico e invarianti di BaroStat 24. Vale per ogni file del progetto.
+alwaysApply: true
+---
+
+# BaroStat 24 — dominio
+
+App per allenatori di basket che registra, dal vivo, **in quale fascia degli 8 secondi dell'azione da 24″ cade ogni canestro**, per la propria squadra e per l'avversario.
+
+## Modello dati — non negoziabile
+
+Un **evento** è un tiro che ha prodotto punti, più il caso del tiro libero sbagliato:
+
+```ts
+type Team    = 'us' | 'them'
+type Band    = 0 | 1 | 2          // 0 = 0-8" (24→17), 1 = 8-16" (16→9), 2 = 16-24" (8→0)
+type Outcome = 3 | 2 | 1 | 0      // 3P · 2P · tiro libero segnato · tiro libero sbagliato
+type Period  = 0 | 1 | 2 | 3 | 4  // Q1 Q2 Q3 Q4 TS
+
+type GameEvent = {
+  id: string        // uuid generato dal client, è la chiave di idempotenza della sync
+  gameId: string
+  period: Period
+  team: Team
+  band: Band
+  outcome: Outcome
+  tsClient: number  // Date.now() sul device
+  seq: number       // ordine locale, per l'annulla
+  deletedAt: number | null
+}
+```
+
+**NON esistono** nel modello: giocatori, tiri sbagliati dal campo, palle perse, possessi, rimbalzi, falli. Non aggiungerli, nemmeno "per completezza". Ogni campo in più è un tap in più a bordo campo, ed è il motivo per cui app simili vengono abbandonate dopo due partite.
+
+## Invarianti
+
+1. **Event sourcing puro.** Nessun totale viene mai persistito. Punteggi, totali per fascia e percentuali sono sempre derivati dagli eventi con funzioni pure in `src/lib/stats.ts`. Se ti viene voglia di salvare un contatore, non farlo.
+2. **La somma degli eventi è il punteggio reale.** L'app mostra il punteggio in testa alla schermata live proprio perché chi segna possa confrontarlo col tabellone della palestra: se divergono, manca un tap. Non introdurre nulla che rompa questa corrispondenza.
+3. **L'annulla è un `pop` sul log**, non una modifica di un contatore.
+4. **Un tap = un evento.** Nessuna schermata intermedia, nessuna conferma, nessun modale fra il dito e il dato.
+
+## Lessico
+
+Gli identificatori nel codice sono in **inglese**; le stringhe mostrate all'utente sono in **italiano**. Glossario:
+
+| Codice | UI | Significato |
+|---|---|---|
+| `band` | fascia | una delle tre finestre da 8 secondi |
+| `period` | quarto | Q1–Q4, TS = tempo supplementare |
+| `outcome` | esito | 3P, 2P, TL, TL ✕ |
+| `us` / `them` | Noi / nome avversario | le due squadre |
+| `game` | partita | |
+| `freeThrow` | tiro libero (TL) | |
+
+Nell'interfaccia le fasce si scrivono sempre `0–8″`, `8–16″`, `16–24″` (trattino en-dash, doppio primo `″`), con sotto il verso del cronometro: `24→17`, `16→9`, `8→0`.
+
+## Contesto d'uso — decide le scelte tecniche
+
+Chi usa l'app è **in piedi in panchina, con gli occhi sul campo, non sullo schermo**. Questo significa:
+
+- bersagli grandi e sempre nella stessa posizione;
+- nessuna animazione che sposti le cose;
+- nessun dialog che rubi il focus;
+- lo stato dei dati sempre visibile senza doverlo cercare.
+
+## Questioni ancora aperte
+
+Non risolverle da solo: se il codice le incontra, segnala e chiedi.
+
+- Tiri liberi contati per singolo tiro (scelta attuale) o per viaggio in lunetta.
+- Rimbalzo offensivo: il clock riparte da 14″, quindi si legge il numero esposto e l'azione riprende in fascia 2.
+
+## Un solo registratore per partita
+
+Durante una partita **registra sempre e solo un device**. Gli altri account possono aprire la partita in **sola lettura**.
+
+Conseguenza tecnica, importante: il log eventi ha un unico produttore, quindi la sincronizzazione è un *append* puro e **non serve alcuna risoluzione di conflitti**. Non scrivere merge, CRDT, vector clock o logiche last-writer-wins: sarebbero complessità senza un problema da risolvere.
+
+La partita porta un `recorderDeviceId`. Se un secondo device prova ad aprirla in scrittura, l'app avvisa e propone la sola lettura invece di lasciar registrare in parallelo — due persone che segnano lo stesso canestro lo conterebbero due volte, e nessun algoritmo può distinguere quel doppione da un vero canestro.

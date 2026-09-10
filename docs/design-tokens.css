@@ -1,0 +1,58 @@
+/* BaroStat 24 — token di colore e tipografia.
+   Incollare in src/app/globals.css e mappare su Tailwind in tailwind.config.ts.
+   Tema scuro fisso: nessuna variante chiara, nessun @media prefers-color-scheme. */
+
+@import url('https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Archivo:wght@400;500;600;700&display=swap');
+
+:root{
+  /* superfici */
+  --ground:#0C0F14;
+  --panel:#151A22;
+  --panel-2:#1B222C;
+  --line:#28313E;
+  --line-soft:#202834;
+
+  /* testo */
+  --ink:#E9EEF5;
+  --ink-2:#9AA7B8;
+  --ink-3:#6B7787;
+
+  /* identità squadre — uso come TESTO */
+  --us:#4CC2FF;
+  --them:#FF7A59;
+
+  /* identità squadre — uso come MARKS nei grafici (contrasto e CVD validati) */
+  --us-mark:#2A9FD6;
+  --them-mark:#E4603C;
+
+  /* rampa sequenziale delle tre fasce: l'ordine codifica la posizione nell'azione */
+  --f1:#17567A;
+  --f2:#2A9FD6;
+  --f3:#8AD4F5;
+
+  /* stato */
+  --win:#5FD08A;
+  --loss:#C9556B;
+  --warn:#F2C14E;
+
+  /* tipografia */
+  --display:"Barlow Condensed","Oswald","Arial Narrow",sans-serif;
+  --body:"Archivo","Helvetica Neue",Arial,sans-serif;
+
+  color-scheme:dark;
+}
+
+body{
+  background:var(--ground);
+  color:var(--ink);
+  font-family:var(--body);
+  margin:0;
+  -webkit-tap-highlight-color:transparent;
+}
+
+/* Ogni cifra che sta in colonna o cambia dal vivo. */
+.tnum{font-variant-numeric:tabular-nums}
+
+@media (prefers-reduced-motion:reduce){
+  *{animation:none !important; transition:none !important}
+}

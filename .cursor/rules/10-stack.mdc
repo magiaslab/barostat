@@ -1,0 +1,44 @@
+---
+description: Stack, struttura delle cartelle e convenzioni di codice.
+alwaysApply: true
+---
+
+# Stack e convenzioni
+
+- **Next.js** App Router, TypeScript strict, su **Vercel**
+- **Tailwind** + **shadcn/ui** (componenti aggiunti con `npx shadcn@latest add`, mai copiati a mano)
+- **Neon** Postgres + **Drizzle ORM** (`drizzle-kit` per le migrazioni, mai `db push` in produzione)
+- **Auth.js v5**
+- **Dexie** per IndexedDB
+- PWA con manifest e service worker (Serwist, oppure a mano: niente `next-pwa`, non è mantenuto)
+
+## Struttura
+
+```
+src/
+  app/
+    (auth)/login/          schermata di accesso
+    (app)/games/           elenco partite
+    (app)/games/new/       nuova partita
+    (app)/games/[id]/      registrazione dal vivo
+    (app)/games/[id]/report/  riepilogo ed export
+    api/sync/route.ts      ingestione batch degli eventi
+  components/ui/           shadcn
+  components/             componenti dell'app
+  lib/
+    db/schema.ts           Drizzle
+    local/dexie.ts         store locale
+    local/sync.ts          coda ed invio
+    stats.ts               funzioni pure di derivazione
+    export/                testo, csv, pdf
+```
+
+## Regole di codice
+
+- **Server Components di default.** `"use client"` solo dove serve davvero interazione: la schermata live, i form.
+- **Nessun `any`.** I tipi del dominio stanno in `src/lib/types.ts` e sono la fonte di verità.
+- **`src/lib/stats.ts` è puro**: nessun accesso a rete, DB o DOM. Ogni funzione lì dentro va coperta da test (Vitest).
+- Niente librerie di state management: `useState` più il layer Dexie bastano.
+- Niente librerie di grafici: il grafico di distribuzione sono barre in CSS, come nel mockup. Non installare Recharts o simili.
+- Commenti in italiano, solo dove spiegano un *perché* non ovvio. Nessun commento che ripete il codice.
+- Messaggi di commit in italiano, all'imperativo: `aggiungi coda di sincronizzazione`.

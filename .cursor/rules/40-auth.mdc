@@ -1,0 +1,52 @@
+---
+description: Accesso con Google ristretto al dominio Workspace. Leggere prima di toccare autenticazione, sessioni o middleware.
+globs: src/auth.ts,src/auth.config.ts,src/middleware.ts,src/app/api/auth/**,src/app/(auth)/**
+---
+
+# Autenticazione
+
+**Auth.js v5, provider Google unico, ristretto al dominio Google Workspace di SVB Basket San Vincenzo.** Nessuna password, nessun magic link, nessun provider aggiuntivo. Gli utenti sono due o tre, tutti con un account del dominio.
+
+## Le due regole che contano
+
+### 1. Sessione JWT, mai su database
+
+```ts
+session: { strategy: 'jwt' }
+```
+
+La PWA deve funzionare in palestra senza rete. Una sessione su database richiede un roundtrip al server a ogni richiesta: offline l'app resterebbe bloccata sul login invece che sui dati. Questa scelta non è negoziabile, e vale anche se in futuro si aggiunge l'adapter Drizzle per le altre tabelle.
+
+### 2. Il dominio si verifica lato server
+
+```ts
+Google({
+  authorization: { params: { hd: process.env.GOOGLE_WORKSPACE_DOMAIN, prompt: 'select_account' } }
+})
+```
+
+Il parametro `hd` nella richiesta **è solo un suggerimento per la schermata di Google e non protegge nulla**: un utente può rimuoverlo dall'URL. La restrizione vera si fa nel callback, sulla claim del profilo:
+
+```ts
+async signIn({ profile }) {
+  return profile?.email_verified === true
+      && profile?.hd === process.env.GOOGLE_WORKSPACE_DOMAIN
+}
+```
+
+Entrambe le condizioni servono: `hd` senza `email_verified` è aggirabile.
+
+## Configurazione della console Google
+
+Google Cloud Console del Workspace → API e servizi → Credenziali → ID client OAuth 2.0, tipo *Applicazione web*. URI di reindirizzamento autorizzati:
+
+```
+http://localhost:3000/api/auth/callback/google
+https://<dominio-di-produzione>/api/auth/callback/google
+```
+
+Tipo di utente della schermata consenso: **Interno**. Così solo il dominio vede l'app e non serve la verifica di Google.
+
+## Middleware
+
+Protegge tutto tranne `/login` e gli asset. Attenzione: **il middleware non deve intercettare le rotte usate offline** — la shell dell'app e il service worker devono poter servire dalla cache anche quando il token è scaduto. La sessione dura settimane e si rinnova quando c'è rete.

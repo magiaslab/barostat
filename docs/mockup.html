@@ -1,0 +1,936 @@
+<title>BaroStat 24</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Archivo:wght@400;500;600;700&display=swap">
+<style>
+  :root{
+    --ground:#0C0F14;
+    --panel:#151A22;
+    --panel-2:#1B222C;
+    --line:#28313E;
+    --line-soft:#202834;
+    --ink:#E9EEF5;
+    --ink-2:#9AA7B8;
+    --ink-3:#6B7787;
+    --us:#4CC2FF;
+    --them:#FF7A59;
+    --us-mark:#2A9FD6;
+    --them-mark:#E4603C;
+    --f1:#17567A; --f2:#2A9FD6; --f3:#8AD4F5;   /* rampa sequenziale fasce */
+    --win:#5FD08A; --loss:#C9556B;
+    --warn:#F2C14E;
+    --display:"Barlow Condensed","Oswald","Arial Narrow",sans-serif;
+    --body:"Archivo","Helvetica Neue",Arial,sans-serif;
+    color-scheme:dark;
+  }
+  *{box-sizing:border-box}
+  body{margin:0; background:var(--ground); color:var(--ink); font-family:var(--body); -webkit-tap-highlight-color:transparent}
+  .wrap{max-width:900px; margin:0 auto; padding-inline:12px}
+  .screen{display:none}
+  .screen.on{display:block}
+  button{font:inherit}
+  :focus-visible{outline:2px solid var(--us); outline-offset:2px}
+
+  /* ============ tipografia condivisa ============ */
+  .eyebrow{font-family:var(--display); font-weight:600; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:var(--ink-3)}
+  h1.t{font-family:var(--display); font-weight:700; font-size:30px; letter-spacing:.1em; text-transform:uppercase; margin:0}
+  h2.t{font-family:var(--display); font-weight:700; font-size:20px; letter-spacing:.14em; text-transform:uppercase; margin:0}
+  h3.t{font-family:var(--display); font-weight:700; font-size:15px; letter-spacing:.12em; text-transform:uppercase; margin:0}
+  .muted{color:var(--ink-3); font-size:12px; line-height:1.6}
+
+  .btn{
+    font-family:var(--display); font-weight:600; font-size:15px; letter-spacing:.1em;
+    text-transform:uppercase; border-radius:10px; cursor:pointer;
+    border:1px solid var(--line); background:var(--panel); color:var(--ink-2);
+    padding:12px 14px; display:flex; align-items:center; justify-content:center; gap:7px;
+    white-space:nowrap;
+  }
+  .btn.primary{background:var(--ink); color:#0C0F14; border-color:var(--ink)}
+  .btn.wide{width:100%}
+  .btn:disabled{opacity:.35; cursor:default}
+
+  /* ============ 1. ACCESSO ============ */
+  #login .box{
+    min-height:100svh; display:flex; flex-direction:column; justify-content:center;
+    gap:26px; max-width:380px; margin:0 auto; padding-block:40px;
+  }
+  .mark{display:flex; flex-direction:column; gap:4px; width:74px}
+  .mark i{height:9px; border-radius:2px; display:block}
+  .mark i:nth-child(1){background:var(--f1); width:100%}
+  .mark i:nth-child(2){background:var(--f2); width:72%}
+  .mark i:nth-child(3){background:var(--f3); width:44%}
+  #login .tag{font-family:var(--display); font-weight:500; font-size:17px; letter-spacing:.04em; color:var(--ink-2); margin:6px 0 0}
+  .gbtn{
+    width:100%; background:#FFFFFF; color:#1F2328; border:0; border-radius:10px;
+    padding:13px 16px; display:flex; align-items:center; justify-content:center; gap:10px;
+    font-family:var(--body); font-weight:600; font-size:15px; cursor:pointer;
+  }
+  .gbtn svg{width:18px; height:18px; flex:none}
+  .roster{border:1px solid var(--line); border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; gap:9px}
+  .rmember{display:flex; align-items:center; gap:9px; font-size:12px; color:var(--ink-2)}
+  .av{
+    width:24px; height:24px; border-radius:50%; flex:none; display:grid; place-items:center;
+    font-family:var(--display); font-weight:700; font-size:12px; color:#0C0F14;
+  }
+
+  /* ============ header app ============ */
+  .apphead{display:flex; align-items:center; justify-content:space-between; gap:10px; padding-block:16px 14px}
+  .who{display:flex; align-items:center; gap:8px}
+  .link{background:none; border:0; color:var(--ink-3); font-size:12px; cursor:pointer; padding:6px 0; display:flex; align-items:center; gap:5px}
+  .link:hover{color:var(--ink-2)}
+
+  /* ============ 2. PARTITE ============ */
+  .legend-row{display:flex; gap:12px; align-items:center; flex-wrap:wrap; padding:10px 0 12px; border-bottom:1px solid var(--line-soft); margin-bottom:4px}
+  .legend-row span{display:flex; align-items:center; gap:5px; font-size:10px; color:var(--ink-3); letter-spacing:.06em}
+  .sw{width:9px; height:9px; border-radius:2px; flex:none}
+  .games{display:flex; flex-direction:column; padding-bottom:96px}
+  .game{
+    display:grid; grid-template-columns:1fr auto; gap:4px 10px; align-items:center;
+    width:100%; text-align:left; background:none; border:0; border-bottom:1px solid var(--line-soft);
+    padding:13px 2px; cursor:pointer; color:inherit;
+  }
+  .game:hover{background:#11161E}
+  .g-opp{font-family:var(--display); font-weight:700; font-size:19px; letter-spacing:.03em}
+  .g-meta{font-size:11px; color:var(--ink-3); grid-column:1}
+  .g-res{
+    font-family:var(--display); font-weight:700; font-size:19px; font-variant-numeric:tabular-nums;
+    grid-row:1; grid-column:2; display:flex; align-items:center; gap:7px;
+  }
+  .chip{
+    font-family:var(--display); font-weight:700; font-size:11px; letter-spacing:.08em;
+    border-radius:4px; padding:2px 6px; line-height:1.35;
+  }
+  .chip.win{background:#16341F; color:var(--win); border:1px solid #245A38}
+  .chip.loss{background:#361B22; color:var(--loss); border:1px solid #5C2C38}
+  .chip.live{background:#3A2F10; color:var(--warn); border:1px solid #5C4A1B}
+  .dist{grid-column:2; grid-row:2; display:flex; gap:2px; width:104px; justify-self:end}
+  .dist i{height:5px; border-radius:1px; display:block}
+
+  /* ============ 3. NUOVA PARTITA ============ */
+  .form{display:flex; flex-direction:column; gap:18px; max-width:440px; padding-bottom:96px}
+  .field{display:flex; flex-direction:column; gap:7px}
+  .field label{font-family:var(--display); font-weight:600; font-size:12px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-3)}
+  .field input, .field select{
+    background:var(--panel-2); border:1px solid var(--line); border-radius:9px;
+    color:var(--ink); padding:12px 13px; font-size:15px; font-family:var(--body); width:100%;
+  }
+  .seg{display:flex; gap:6px}
+  .seg button{
+    flex:1; background:var(--panel-2); border:1px solid var(--line); border-radius:9px;
+    color:var(--ink-3); padding:11px 8px; cursor:pointer;
+    font-family:var(--display); font-weight:600; font-size:14px; letter-spacing:.08em; text-transform:uppercase;
+  }
+  .seg button[aria-pressed="true"]{background:var(--ink); color:#0C0F14; border-color:var(--ink)}
+
+  /* ============ 4. LIVE ============ */
+  .board{position:sticky; top:0; z-index:20; background:linear-gradient(180deg,#0C0F14 74%,rgba(12,15,20,0)); padding-block:12px 10px}
+  .board-inner{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px 12px}
+  .score-row{display:flex; align-items:center; justify-content:space-between; gap:8px}
+  .side{display:flex; flex-direction:column; gap:1px; min-width:0}
+  .side.right{align-items:flex-end}
+  .side-name{font-family:var(--display); font-weight:700; font-size:13px; letter-spacing:.14em; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:92px}
+  .side.us .side-name{color:var(--us)}
+  .side.them .side-name{color:var(--them)}
+  .side-score{font-family:var(--display); font-weight:700; font-size:40px; line-height:.95; font-variant-numeric:tabular-nums}
+  .mid{display:flex; flex-direction:column; align-items:center; gap:6px}
+  .period{font-family:var(--display); font-weight:600; font-size:11px; letter-spacing:.18em; color:var(--ink-3); text-transform:uppercase}
+  .pills{display:flex; gap:4px}
+  .pill{
+    font-family:var(--display); font-weight:600; font-size:14px; letter-spacing:.06em;
+    background:transparent; color:var(--ink-3); border:1px solid var(--line);
+    border-radius:999px; padding:3px 9px; cursor:pointer; line-height:1;
+  }
+  .pill[aria-pressed="true"]{background:var(--ink); color:#0C0F14; border-color:var(--ink)}
+
+  /* stato dati */
+  .sync{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:9px; padding-top:9px; border-top:1px solid var(--line-soft)}
+  .syncpill{display:inline-flex; align-items:center; gap:7px; background:none; border:0; padding:0; cursor:pointer; color:var(--ink-2); font-size:11px; letter-spacing:.03em}
+  .dot{width:7px; height:7px; border-radius:50%; flex:none}
+  .dot.on{background:var(--win)}
+  .dot.off{background:var(--warn)}
+  .syncmeta{font-size:11px; color:var(--ink-3); font-variant-numeric:tabular-nums; white-space:nowrap}
+
+  .panels{display:flex; flex-direction:column; gap:12px; padding-bottom:96px}
+  @media (min-width:760px){ .panels{flex-direction:row} .panels > .panel{flex:1} }
+  .panel{background:var(--panel); border:1px solid var(--line); border-radius:12px; overflow:hidden}
+  .panel-head{display:flex; align-items:baseline; justify-content:space-between; gap:8px; padding:9px 12px; border-bottom:1px solid var(--line-soft)}
+  .panel.us .panel-head{border-left:3px solid var(--us)}
+  .panel.them .panel-head{border-left:3px solid var(--them)}
+  .panel-title{font-family:var(--display); font-weight:700; font-size:17px; letter-spacing:.16em; text-transform:uppercase; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .panel.us .panel-title{color:var(--us)}
+  .panel.them .panel-title{color:var(--them)}
+  .panel-sub{font-size:11px; color:var(--ink-3); white-space:nowrap}
+  .panel-sub b{color:var(--ink-2); font-weight:600; font-variant-numeric:tabular-nums}
+
+  .grid{display:grid; grid-template-columns:58px repeat(4,1fr) 48px; gap:4px; padding:8px}
+  .colhead{font-family:var(--display); font-weight:600; font-size:13px; letter-spacing:.08em; color:var(--ink-3); text-align:center; padding-bottom:2px; text-transform:uppercase}
+  .colhead.miss{color:#5A6675}
+  .rowlab{display:flex; flex-direction:column; justify-content:center; gap:2px; padding-left:6px; border-left:3px solid var(--line)}
+  .rowlab .t{font-family:var(--display); font-weight:700; font-size:15px; line-height:1; font-variant-numeric:tabular-nums; white-space:nowrap}
+  .rowlab .n{font-size:9px; color:var(--ink-3); letter-spacing:.04em; white-space:nowrap}
+  .rowlab.b1{border-left-color:var(--f1)} .rowlab.b2{border-left-color:var(--f2)} .rowlab.b3{border-left-color:var(--f3)}
+  .cell{
+    appearance:none; border:1px solid var(--line); background:var(--panel-2); border-radius:10px;
+    min-height:56px; cursor:pointer; display:flex; align-items:center; justify-content:center;
+    font-family:var(--display); font-weight:700; font-size:26px; line-height:1;
+    font-variant-numeric:tabular-nums; color:var(--ink-3);
+    transition:transform .08s ease, background .12s ease, color .12s ease; user-select:none;
+  }
+  .cell.has{color:var(--ink)}
+  .panel.us .cell.has{background:#16303D; border-color:#22526A}
+  .panel.them .cell.has{background:#3A211A; border-color:#6A3A2A}
+  .cell.miss{border-style:dashed}
+  .panel.us .cell.miss.has,.panel.them .cell.miss.has{background:var(--panel-2); border-color:#3A4553; color:var(--ink-2)}
+  .cell:active{transform:scale(.94)}
+  .cell.bump{animation:bump .22s ease}
+  @keyframes bump{0%{transform:scale(1)}40%{transform:scale(1.07)}100%{transform:scale(1)}}
+  .rowtot{display:flex; flex-direction:column; align-items:flex-end; justify-content:center; padding-right:4px}
+  .rowtot .p{font-family:var(--display); font-weight:700; font-size:20px; line-height:1; font-variant-numeric:tabular-nums}
+  .rowtot .q{font-size:9px; color:var(--ink-3); font-variant-numeric:tabular-nums}
+  .panel-foot{display:flex; border-top:1px solid var(--line-soft)}
+  .stat{flex:1; padding:8px 10px; border-right:1px solid var(--line-soft); display:flex; flex-direction:column; gap:1px}
+  .stat:last-child{border-right:0}
+  .stat .k{font-size:9px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-3)}
+  .stat .v{font-family:var(--display); font-weight:700; font-size:19px; line-height:1; font-variant-numeric:tabular-nums}
+  .stat .s{font-size:10px; color:var(--ink-3); font-variant-numeric:tabular-nums}
+
+  .bar{position:fixed; left:0; right:0; bottom:0; z-index:30; background:linear-gradient(0deg,#0C0F14 78%,rgba(12,15,20,0)); padding:14px 12px calc(14px + env(safe-area-inset-bottom))}
+  .bar-inner{max-width:900px; margin:0 auto; display:flex; gap:8px}
+  .bar .btn{flex:1; font-size:14px; letter-spacing:.06em; padding-inline:8px}
+
+  /* ---- tablet in orizzontale: schermata intera, nessuno scroll, bersagli grandi ---- */
+  @media (min-width:900px) and (min-height:600px){
+    #live > .wrap{height:100svh; display:flex; flex-direction:column; padding-bottom:88px}
+    #live .board{padding-block:14px 12px}
+    #live .side-score{font-size:52px}
+    #live .side-name{font-size:15px; max-width:none}
+    #live .pill{font-size:16px; padding:5px 13px}
+    #live .panels{flex:1; min-height:0; padding-bottom:0; gap:14px}
+    #live .panel{display:flex; flex-direction:column; min-height:0}
+    #live .panel-title{font-size:21px}
+    #live .panel-sub{font-size:13px}
+    #live .grid{flex:1; min-height:0; grid-template-rows:auto repeat(3,1fr); grid-template-columns:74px repeat(4,1fr) 60px; gap:6px; padding:10px}
+    #live .cell{min-height:0; font-size:42px; border-radius:12px}
+    #live .colhead{font-size:16px}
+    #live .rowlab .t{font-size:20px}
+    #live .rowlab .n{font-size:11px}
+    #live .rowtot .p{font-size:26px}
+    #live .rowtot .q{font-size:11px}
+    #live .stat .v{font-size:23px}
+    #live .stat .k{font-size:10px}
+    #live .bar .btn{font-size:16px; padding-block:14px}
+  }
+  .bar .btn.undo{flex:1.25; color:var(--ink); background:var(--panel-2)}
+
+  /* ============ 5. RIEPILOGO / EXPORT ============ */
+  .rep{padding-bottom:110px; display:flex; flex-direction:column; gap:20px}
+  .final{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px}
+  .final .meta{display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:12px}
+  .final .sc{display:flex; align-items:flex-end; justify-content:space-between; gap:12px}
+  .final .sc .n{font-family:var(--display); font-weight:700; font-size:13px; letter-spacing:.12em; text-transform:uppercase}
+  .final .sc .v{font-family:var(--display); font-weight:700; font-size:46px; line-height:.9; font-variant-numeric:tabular-nums}
+  .insight{
+    font-size:15px; line-height:1.55; color:var(--ink); margin:0;
+    border-left:3px solid var(--f2); padding-left:12px; max-width:60ch;
+  }
+  .insight b{font-weight:700}
+
+  .fig{padding:14px 12px; background:#111721; border:1px solid var(--line-soft); border-radius:10px}
+  .fig .cap{font-size:11px; color:var(--ink-3); margin:3px 0 12px}
+  .legend{display:flex; gap:14px; margin-bottom:12px}
+  .legend span{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--ink-2)}
+  .sw.us{background:var(--us-mark)} .sw.them{background:var(--them-mark)}
+  .grp{margin-bottom:12px}
+  .grp:last-child{margin-bottom:0}
+  .grp-lab{font-family:var(--display); font-weight:600; font-size:12px; letter-spacing:.1em; color:var(--ink-2); margin-bottom:5px}
+  .track{display:flex; align-items:center; gap:8px; margin-bottom:2px; border-left:1px solid var(--line)}
+  .barout{flex:1; min-width:0}
+  .barin{height:10px; border-radius:0 4px 4px 0; min-width:2px}
+  .barin.us{background:var(--us-mark)} .barin.them{background:var(--them-mark)}
+  .val{font-size:11px; color:var(--ink-2); font-variant-numeric:tabular-nums; white-space:nowrap; min-width:80px}
+  .val b{color:var(--ink); font-weight:600}
+
+  .tbl-wrap{overflow-x:auto}
+  table{border-collapse:collapse; width:100%; min-width:330px}
+  caption{text-align:left; font-family:var(--display); font-weight:700; font-size:14px; letter-spacing:.16em; text-transform:uppercase; padding-bottom:6px}
+  caption.us{color:var(--us)} caption.them{color:var(--them)}
+  th,td{padding:6px 8px; text-align:right; font-variant-numeric:tabular-nums; border-bottom:1px solid var(--line-soft); font-size:13px}
+  th:first-child,td:first-child{text-align:left}
+  thead th{font-family:var(--display); font-weight:600; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-3)}
+  tbody td{color:var(--ink-2)}
+  tbody tr.tot td{color:var(--ink); font-weight:700; border-bottom:0}
+  td.hi{color:var(--ink)}
+
+  .exp{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px}
+  .tabs{display:flex; gap:6px; margin:12px 0 12px}
+  .tabs button{
+    flex:1; background:var(--panel-2); border:1px solid var(--line); border-radius:9px;
+    color:var(--ink-3); padding:9px 6px; cursor:pointer;
+    font-family:var(--display); font-weight:600; font-size:13px; letter-spacing:.08em; text-transform:uppercase;
+  }
+  .tabs button[aria-pressed="true"]{background:var(--ink); color:#0C0F14; border-color:var(--ink)}
+  .preview{
+    background:#0A0D12; border:1px solid var(--line-soft); border-radius:9px;
+    padding:12px; font-family:ui-monospace,"SFMono-Regular",Menlo,Consolas,monospace;
+    font-size:11.5px; line-height:1.65; color:var(--ink-2);
+    white-space:pre; overflow-x:auto; margin:0 0 12px;
+  }
+  .preview.wrap-text{white-space:pre-wrap}
+  .exp .muted{margin-bottom:12px}
+
+  .toast{
+    position:fixed; left:50%; bottom:96px; transform:translateX(-50%) translateY(8px);
+    background:var(--ink); color:#0C0F14; border-radius:999px; padding:9px 18px;
+    font-family:var(--display); font-weight:600; font-size:14px; letter-spacing:.08em; text-transform:uppercase;
+    opacity:0; pointer-events:none; transition:opacity .2s ease, transform .2s ease; z-index:60;
+  }
+  .toast.on{opacity:1; transform:translateX(-50%) translateY(0)}
+
+  .demo-chip{
+    display:inline-flex; align-items:center; font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+    color:var(--warn); border:1px solid #4A3E1C; background:#241E10; border-radius:999px; padding:3px 8px;
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none !important; transition:none !important}}
+</style>
+
+<!-- ══════════════ 1. ACCESSO ══════════════ -->
+<section class="screen on" id="login">
+  <div class="wrap">
+    <div class="box">
+      <div>
+        <div class="mark" aria-hidden="true"><i></i><i></i><i></i></div>
+        <h1 class="t" style="margin-top:18px">BaroStat 24</h1>
+        <p class="tag">I ventiquattro secondi, otto per volta.</p>
+      </div>
+
+      <div>
+        <button class="gbtn" id="goLogin" type="button">
+          <svg viewBox="0 0 48 48" aria-hidden="true"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.6 30.2.5 24 .5 14.6.5 6.5 5.8 2.6 13.6l7.8 6c1.9-5.7 7.2-10.1 13.6-10.1z"/><path fill="#4285F4" d="M46.5 24.5c0-1.6-.1-3.2-.4-4.7H24v9h12.7c-.6 3-2.3 5.5-4.8 7.2l7.6 5.9c4.4-4.1 7-10.2 7-17.4z"/><path fill="#FBBC05" d="M10.4 28.4c-.5-1.4-.8-2.9-.8-4.4s.3-3 .8-4.4l-7.8-6C1 16.7 0 20.2 0 24s1 7.3 2.6 10.4l7.8-6z"/><path fill="#34A853" d="M24 47.5c6.2 0 11.5-2 15.3-5.6l-7.6-5.9c-2.1 1.4-4.8 2.3-7.7 2.3-6.4 0-11.7-4.4-13.6-10.1l-7.8 6C6.5 42.2 14.6 47.5 24 47.5z"/></svg>
+          Accedi con Google
+        </button>
+        <p class="muted" style="margin:12px 0 0">Accesso riservato allo staff. Nessuna password da ricordare a bordo campo: l'account Google che usate già è sufficiente, e la sessione resta valida anche in palestra senza rete.</p>
+      </div>
+
+      <div class="roster">
+        <span class="eyebrow">Account autorizzati</span>
+        <div class="rmember"><span class="av" style="background:var(--f2)">AC</span>Alessandro Cipriani · capo allenatore</div>
+        <div class="rmember"><span class="av" style="background:var(--them-mark)">MR</span>Marco Rossi · assistente</div>
+        <div class="rmember"><span class="av" style="background:var(--win); color:#0C0F14">GB</span>Giulia Bianchi · statistiche</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════ 2. PARTITE ══════════════ -->
+<section class="screen" id="games">
+  <div class="wrap">
+    <div class="apphead">
+      <div class="who">
+        <span class="av" style="background:var(--f2)">AC</span>
+        <div style="display:flex; flex-direction:column">
+          <span style="font-size:13px; font-weight:600">Alessandro</span>
+          <span style="font-size:10px; color:var(--ink-3)">Pallacanestro Vigàno</span>
+        </div>
+      </div>
+      <div style="display:flex; align-items:center; gap:16px">
+        <span class="syncpill" style="cursor:default"><i class="dot on" id="syncDot2"></i><span id="syncTxt2">Sincronizzato</span></span>
+        <button class="link" id="doLogout" type="button">Esci</button>
+      </div>
+    </div>
+
+    <h2 class="t">Partite</h2>
+    <div class="legend-row">
+      <span class="eyebrow" style="letter-spacing:.14em">Punti per fascia</span>
+      <span><i class="sw" style="background:var(--f1)"></i>0–8″</span>
+      <span><i class="sw" style="background:var(--f2)"></i>8–16″</span>
+      <span><i class="sw" style="background:var(--f3)"></i>16–24″</span>
+      <span class="demo-chip" style="margin-left:auto">Dati di esempio</span>
+    </div>
+
+    <div class="games" id="gameList"></div>
+  </div>
+  <div class="bar"><div class="bar-inner">
+    <button class="btn primary" id="goNew" type="button">+ Nuova partita</button>
+  </div></div>
+</section>
+
+<!-- ══════════════ 3. NUOVA PARTITA ══════════════ -->
+<section class="screen" id="setup">
+  <div class="wrap">
+    <div class="apphead"><button class="link" data-go="games" type="button">← Partite</button></div>
+    <h2 class="t" style="margin-bottom:20px">Nuova partita</h2>
+
+    <div class="form">
+      <div class="field">
+        <label for="fOpp">Avversario</label>
+        <input id="fOpp" type="text" value="Basket Cernusco" autocomplete="off">
+      </div>
+      <div class="field">
+        <label for="fDate">Data</label>
+        <input id="fDate" type="date" value="2026-09-12">
+      </div>
+      <div class="field">
+        <label>Campo</label>
+        <div class="seg" id="fVenue">
+          <button type="button" data-v="casa" aria-pressed="true">Casa</button>
+          <button type="button" data-v="trasferta" aria-pressed="false">Trasferta</button>
+        </div>
+      </div>
+      <div class="field">
+        <label for="fComp">Competizione</label>
+        <select id="fComp">
+          <option>Campionato</option>
+          <option>Coppa</option>
+          <option>Amichevole</option>
+        </select>
+      </div>
+      <p class="muted" style="margin:0">Durata dell'azione: 24 secondi, tre fasce da 8. Se una categoria gioca con regolamenti diversi, la durata diventa un campo di questa schermata e le fasce si ricalcolano da sola.</p>
+    </div>
+  </div>
+  <div class="bar"><div class="bar-inner">
+    <button class="btn" data-go="games" type="button">Annulla</button>
+    <button class="btn primary" id="goStart" type="button">Palla a due</button>
+  </div></div>
+</section>
+
+<!-- ══════════════ 4. LIVE ══════════════ -->
+<section class="screen" id="live">
+  <div class="wrap">
+    <header class="board">
+      <div class="board-inner">
+        <div class="score-row">
+          <div class="side us">
+            <span class="side-name">Noi</span>
+            <span class="side-score" id="scoreUs">0</span>
+          </div>
+          <div class="mid">
+            <span class="period" id="periodLabel">In campo</span>
+            <div class="pills" id="pills" role="group" aria-label="Quarto"></div>
+          </div>
+          <div class="side them right">
+            <span class="side-name" id="oppNameTop">Loro</span>
+            <span class="side-score" id="scoreThem">0</span>
+          </div>
+        </div>
+        <div class="sync">
+          <button class="syncpill" id="syncPill" type="button">
+            <i class="dot on" id="syncDot"></i><span id="syncTxt">Sincronizzato</span>
+          </button>
+          <span class="syncmeta" id="syncMeta">0 eventi</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="panels">
+      <section class="panel us" id="panelUs">
+        <div class="panel-head">
+          <span class="panel-title">Noi</span>
+          <span class="panel-sub"><b id="usPts">0</b> pt · TL <b id="usTl">0/0</b></span>
+        </div>
+        <div class="grid" id="gridUs"></div>
+        <div class="panel-foot" id="footUs"></div>
+      </section>
+      <section class="panel them" id="panelThem">
+        <div class="panel-head">
+          <span class="panel-title" id="oppNamePanel">Loro</span>
+          <span class="panel-sub"><b id="themPts">0</b> pt · TL <b id="themTl">0/0</b></span>
+        </div>
+        <div class="grid" id="gridThem"></div>
+        <div class="panel-foot" id="footThem"></div>
+      </section>
+    </main>
+  </div>
+  <div class="bar"><div class="bar-inner">
+    <button class="btn undo" id="undoBtn" type="button">↩ Annulla</button>
+    <button class="btn" id="scopeBtn" type="button" aria-pressed="false">Quarto</button>
+    <button class="btn primary" id="goReport" type="button">Riepilogo</button>
+  </div></div>
+</section>
+
+<!-- ══════════════ 5. RIEPILOGO ED EXPORT ══════════════ -->
+<section class="screen" id="report">
+  <div class="wrap">
+    <div class="apphead"><button class="link" data-go="live" type="button">← Torna alla partita</button></div>
+
+    <div class="rep">
+      <div class="final">
+        <div class="meta" id="repMeta"></div>
+        <div class="sc">
+          <div><div class="n" style="color:var(--us)">Noi</div><div class="v" id="repUs">0</div></div>
+          <div style="text-align:right"><div class="n" style="color:var(--them)" id="repOppName">Loro</div><div class="v" id="repThem">0</div></div>
+        </div>
+      </div>
+
+      <p class="insight" id="repInsight"></p>
+
+      <figure class="fig" style="margin:0">
+        <h3 class="t">Da dove arrivano i punti</h3>
+        <p class="cap">Punti per fascia dei 24″ — partita intera</p>
+        <div class="legend">
+          <span><i class="sw us"></i>Noi</span>
+          <span><i class="sw them"></i><span id="legOpp">Loro</span></span>
+        </div>
+        <div id="chart"></div>
+      </figure>
+
+      <div class="tbl-wrap"><table id="tblUs"><caption class="us">Noi</caption></table></div>
+      <div class="tbl-wrap"><table id="tblThem"><caption class="them">Loro</caption></table></div>
+
+      <div class="exp">
+        <h3 class="t">Export</h3>
+        <div class="tabs" id="expTabs">
+          <button type="button" data-x="testo" aria-pressed="true">Testo</button>
+          <button type="button" data-x="csv" aria-pressed="false">CSV</button>
+          <button type="button" data-x="pdf" aria-pressed="false">PDF</button>
+        </div>
+        <p class="muted" id="expNote"></p>
+        <pre class="preview wrap-text" id="expPreview"></pre>
+        <button class="btn primary wide" id="expAction" type="button">Copia negli appunti</button>
+      </div>
+    </div>
+  </div>
+  <div class="bar"><div class="bar-inner">
+    <button class="btn" data-go="live" type="button">Continua</button>
+    <button class="btn primary" id="goClose" type="button">Chiudi partita</button>
+  </div></div>
+</section>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  "use strict";
+
+  var BUCKETS = [{t:'0–8″',n:'24→17'},{t:'8–16″',n:'16→9'},{t:'16–24″',n:'8→0'}];
+  var COLS = [{v:3,lab:'3P'},{v:2,lab:'2P'},{v:1,lab:'TL'},{v:0,lab:'TL ✕',miss:true}];
+  var PERIODS = ['Q1','Q2','Q3','Q4','TS'];
+
+  var game = {opp:'Basket Cernusco', date:'2026-09-12', venue:'casa', comp:'Campionato'};
+  var state = {events:[], period:0, scope:'period'};
+  var seq = 0;
+  function ev(p,team,b,o){ return {id:++seq, p:p, team:team, b:b, o:o}; }
+
+  var HISTORY = [
+    {opp:'Pol. Cusano',   date:'30 ago',  comp:'Amichevole', us:71, them:66, dist:[26,29,16]},
+    {opp:'Basket Seveso', date:'4 set',   comp:'Campionato', us:64, them:78, dist:[14,32,18]},
+    {opp:'Aurora Desio',  date:'7 set',   comp:'Campionato', us:82, them:69, dist:[38,30,14]}
+  ];
+
+  /* Q1 chiuso, Q2 in corso — 31–30. */
+  function seed(){
+    var s = [
+      [0,'us',0,2],[0,'them',0,2],[0,'us',1,2],[0,'them',1,3],[0,'us',0,2],
+      [0,'them',1,2],[0,'us',1,2],[0,'them',2,2],[0,'us',2,2],[0,'them',0,2],
+      [0,'us',1,1],[0,'us',1,1],[0,'them',1,2],[0,'us',0,3],[0,'them',2,2],
+      [0,'us',2,3],[0,'them',2,3],[0,'us',1,2],[0,'them',1,1],[0,'us',2,0],
+      [0,'us',2,0],[0,'them',2,0],
+      [1,'us',0,3],[1,'them',0,2],[1,'us',1,2],[1,'them',1,2],[1,'us',0,2],
+      [1,'them',2,2],[1,'us',1,1],[1,'us',1,1],[1,'them',1,3],[1,'us',2,2],
+      [1,'them',2,2],[1,'them',2,0],[1,'them',2,0]
+    ];
+    state.events = s.map(function(r){ return ev(r[0],r[1],r[2],r[3]); });
+    state.period = 1;
+  }
+
+  /* ---------- derivazioni ---------- */
+  function counts(team, period){
+    var m = [[0,0,0,0],[0,0,0,0],[0,0,0,0]];
+    state.events.forEach(function(e){
+      if(e.team !== team) return;
+      if(period !== null && e.p !== period) return;
+      for(var i=0;i<COLS.length;i++){ if(COLS[i].v === e.o){ m[e.b][i]++; break; } }
+    });
+    return m;
+  }
+  function rowPoints(r){ return r[0]*3 + r[1]*2 + r[2]; }
+  function matPoints(m){ return rowPoints(m[0])+rowPoints(m[1])+rowPoints(m[2]); }
+  function bands(team, period){ var m=counts(team,period); return [rowPoints(m[0]),rowPoints(m[1]),rowPoints(m[2])]; }
+  function ft(team, period){
+    var m = counts(team, period);
+    return {made:m[0][2]+m[1][2]+m[2][2], miss:m[0][3]+m[1][3]+m[2][3]};
+  }
+  function pct(v,t){ return t ? Math.round(v*100/t)+'%' : '—'; }
+  function usedPeriods(){
+    var u = [];
+    PERIODS.forEach(function(_,i){ if(state.events.some(function(e){return e.p===i;})) u.push(i); });
+    if(u.indexOf(state.period) < 0) u.push(state.period);
+    return u.sort();
+  }
+
+  /* ---------- navigazione ---------- */
+  var current = 'login';
+  function show(name){
+    current = name;
+    ['login','games','setup','live','report'].forEach(function(s){
+      document.getElementById(s).classList.toggle('on', s === name);
+    });
+    window.scrollTo(0,0);
+    if(name === 'games') renderGames();
+    if(name === 'report') renderReport();
+  }
+  document.addEventListener('click', function(e){
+    var g = e.target.closest('[data-go]');
+    if(g) show(g.dataset.go);
+  });
+  document.getElementById('goLogin').addEventListener('click', function(){ show('games'); });
+  document.getElementById('doLogout').addEventListener('click', function(){ show('login'); });
+  document.getElementById('goNew').addEventListener('click', function(){ show('setup'); });
+  document.getElementById('goReport').addEventListener('click', function(){ show('report'); });
+  document.getElementById('goClose').addEventListener('click', function(){
+    toast('Partita archiviata'); show('games');
+  });
+  document.getElementById('goStart').addEventListener('click', function(){
+    game.opp = document.getElementById('fOpp').value.trim() || 'Avversari';
+    game.date = document.getElementById('fDate').value;
+    game.comp = document.getElementById('fComp').value;
+    state.events = []; state.period = 0; seq = 0;
+    applyGame(); buildPills(); render(); show('live');
+  });
+  document.getElementById('fVenue').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-v]'); if(!b) return;
+    game.venue = b.dataset.v;
+    this.querySelectorAll('button').forEach(function(x){
+      x.setAttribute('aria-pressed', String(x === b));
+    });
+  });
+
+  function applyGame(){
+    var short = game.opp.length > 12 ? game.opp.split(' ')[0] : game.opp;
+    document.getElementById('oppNameTop').textContent = short;
+    document.getElementById('oppNamePanel').textContent = game.opp;
+    document.getElementById('repOppName').textContent = game.opp;
+    document.getElementById('legOpp').textContent = game.opp;
+    document.querySelector('#tblThem caption').textContent = game.opp;
+  }
+
+  /* ---------- elenco partite ---------- */
+  function renderGames(){
+    var host = document.getElementById('gameList');
+    var live = {opp:game.opp, date:'oggi', comp:game.comp,
+                us:matPoints(counts('us',null)), them:matPoints(counts('them',null)),
+                dist:bands('us',null), live:true};
+    var rows = [live].concat(HISTORY.slice().reverse());
+
+    host.innerHTML = rows.map(function(g){
+      var tot = g.dist[0]+g.dist[1]+g.dist[2] || 1;
+      var segs = g.dist.map(function(v,i){
+        return '<i style="background:var(--f'+(i+1)+'); width:'+(v/tot*100)+'%"></i>';
+      }).join('');
+      var chip = g.live ? '<span class="chip live">In corso</span>'
+               : (g.us > g.them ? '<span class="chip win">V</span>' : '<span class="chip loss">S</span>');
+      return '<button class="game" type="button" data-live="'+(g.live?1:0)+'">' +
+               '<span class="g-opp">'+g.opp+'</span>' +
+               '<span class="g-res">'+chip+' '+g.us+'–'+g.them+'</span>' +
+               '<span class="g-meta">'+g.date+' · '+g.comp+'</span>' +
+               '<span class="dist">'+segs+'</span>' +
+             '</button>';
+    }).join('');
+
+    host.querySelectorAll('.game').forEach(function(b){
+      b.addEventListener('click', function(){
+        if(this.dataset.live === '1'){ show('live'); }
+        else { toast('Partita archiviata — sola lettura'); }
+      });
+    });
+  }
+
+  /* ---------- costruzione griglia ---------- */
+  function div(cls, txt){ var d=document.createElement('div'); d.className=cls; if(txt) d.textContent=txt; return d; }
+
+  function buildGrid(el, team){
+    el.innerHTML = '';
+    el.appendChild(div('colhead',''));
+    COLS.forEach(function(c){ el.appendChild(div('colhead'+(c.miss?' miss':''), c.lab)); });
+    el.appendChild(div('colhead','pt'));
+
+    BUCKETS.forEach(function(b, bi){
+      var lab = div('rowlab b'+(bi+1),'');
+      lab.innerHTML = '<span class="t">'+b.t+'</span><span class="n">'+b.n+'</span>';
+      el.appendChild(lab);
+      COLS.forEach(function(c, ci){
+        var btn = document.createElement('button');
+        btn.type='button'; btn.className='cell'+(c.miss?' miss':'');
+        btn.dataset.team=team; btn.dataset.b=bi; btn.dataset.c=ci;
+        btn.setAttribute('aria-label',(team==='us'?'Noi':'Loro')+' '+b.t+' '+(c.miss?'tiro libero sbagliato':c.lab));
+        btn.textContent='0';
+        el.appendChild(btn);
+      });
+      var tot = div('rowtot','');
+      tot.innerHTML = '<span class="p">0</span><span class="q">—</span>';
+      tot.dataset.row = bi;
+      el.appendChild(tot);
+    });
+  }
+  function buildFoot(el){
+    el.innerHTML = [0,1,2].map(function(i){
+      return '<div class="stat"><span class="k">'+(i+1)+'ª fascia</span>'+
+             '<span class="v" data-f="'+i+'">0</span><span class="s" data-p="'+i+'">—</span></div>';
+    }).join('');
+  }
+  function buildPills(){
+    var el = document.getElementById('pills');
+    el.innerHTML = '';
+    PERIODS.forEach(function(p,i){
+      var b = document.createElement('button');
+      b.type='button'; b.className='pill'; b.textContent=p;
+      b.setAttribute('aria-pressed', String(i===state.period));
+      b.addEventListener('click', function(){ state.period=i; buildPills(); render(); });
+      el.appendChild(b);
+    });
+  }
+
+  /* ---------- render live ---------- */
+  function render(){
+    var scoped = state.scope === 'period' ? state.period : null;
+    ['us','them'].forEach(function(team){
+      var m = counts(team, scoped), pts = matPoints(m);
+      var panel = document.getElementById(team==='us'?'panelUs':'panelThem');
+      panel.querySelectorAll('.cell').forEach(function(btn){
+        var v = m[+btn.dataset.b][+btn.dataset.c];
+        btn.textContent = v; btn.classList.toggle('has', v>0);
+      });
+      panel.querySelectorAll('.rowtot').forEach(function(t){
+        var rp = rowPoints(m[+t.dataset.row]);
+        t.querySelector('.p').textContent = rp;
+        t.querySelector('.q').textContent = pct(rp, pts);
+      });
+      panel.querySelectorAll('.panel-foot .v').forEach(function(s){ s.textContent = rowPoints(m[+s.dataset.f]); });
+      panel.querySelectorAll('.panel-foot .s').forEach(function(s){ s.textContent = pct(rowPoints(m[+s.dataset.p]), pts); });
+      var f = {made:m[0][2]+m[1][2]+m[2][2], miss:m[0][3]+m[1][3]+m[2][3]};
+      var pfx = team==='us' ? 'us' : 'them';
+      document.getElementById(pfx+'Pts').textContent = pts;
+      document.getElementById(pfx+'Tl').textContent = f.made+'/'+(f.made+f.miss);
+    });
+    document.getElementById('scoreUs').textContent = matPoints(counts('us',null));
+    document.getElementById('scoreThem').textContent = matPoints(counts('them',null));
+    document.getElementById('periodLabel').textContent = state.scope==='period' ? 'In campo' : 'Totale partita';
+    document.getElementById('undoBtn').disabled = state.events.length === 0;
+    renderSync();
+  }
+
+  /* ---------- stato dati ---------- */
+  var online = true;
+  function renderSync(){
+    var n = state.events.length;
+    var txt = online ? 'Sincronizzato' : 'Offline · salvato sul tablet';
+    ['','2'].forEach(function(s){
+      var d = document.getElementById('syncDot'+s), t = document.getElementById('syncTxt'+s);
+      if(!d) return;
+      d.className = 'dot ' + (online ? 'on' : 'off');
+      t.textContent = txt;
+    });
+    document.getElementById('syncMeta').textContent =
+      n + ' eventi' + (online ? '' : ' in coda');
+  }
+  document.getElementById('syncPill').addEventListener('click', function(){
+    online = !online; renderSync();
+    toast(online ? 'Coda inviata' : 'Modalità offline');
+  });
+
+  /* ---------- input ---------- */
+  var pressTimer=null, longFired=false;
+  function removeOne(team,bi,ci){
+    var v = COLS[ci].v;
+    for(var i=state.events.length-1;i>=0;i--){
+      var e = state.events[i];
+      if(e.team===team && e.b===bi && e.o===v && e.p===state.period){ state.events.splice(i,1); return true; }
+    }
+    return false;
+  }
+  function buzz(ms){ try{ if(navigator.vibrate) navigator.vibrate(ms); }catch(err){} }
+
+  document.addEventListener('pointerdown', function(e){
+    var cell = e.target.closest('.cell'); if(!cell) return;
+    longFired = false;
+    pressTimer = setTimeout(function(){
+      longFired = true;
+      if(removeOne(cell.dataset.team, +cell.dataset.b, +cell.dataset.c)){ buzz(30); render(); }
+    }, 480);
+  });
+  ['pointerup','pointercancel','pointerleave'].forEach(function(t){
+    document.addEventListener(t, function(){ clearTimeout(pressTimer); });
+  });
+  document.addEventListener('contextmenu', function(e){ if(e.target.closest('.cell')) e.preventDefault(); });
+  document.addEventListener('click', function(e){
+    var cell = e.target.closest('.cell'); if(!cell) return;
+    if(longFired){ longFired = false; return; }
+    state.events.push(ev(state.period, cell.dataset.team, +cell.dataset.b, COLS[+cell.dataset.c].v));
+    buzz(12);
+    cell.classList.remove('bump'); void cell.offsetWidth; cell.classList.add('bump');
+    render();
+  });
+  document.getElementById('undoBtn').addEventListener('click', function(){ state.events.pop(); buzz(20); render(); });
+  document.getElementById('scopeBtn').addEventListener('click', function(){
+    state.scope = state.scope==='period' ? 'game' : 'period';
+    this.textContent = state.scope==='period' ? 'Quarto' : 'Partita';
+    this.setAttribute('aria-pressed', String(state.scope==='game'));
+    render();
+  });
+
+  /* ---------- riepilogo ---------- */
+  function fmtDate(iso){
+    var M = ['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+    var p = String(iso).split('-');
+    return p.length === 3 ? (+p[2]) + ' ' + M[+p[1]-1] + ' ' + p[0] : iso;
+  }
+
+  function renderReport(){
+    var us = matPoints(counts('us',null)), them = matPoints(counts('them',null));
+    document.getElementById('repUs').textContent = us;
+    document.getElementById('repThem').textContent = them;
+
+    var chip = us === them ? '' :
+      (us > them ? '<span class="chip win">Vittoria</span>' : '<span class="chip loss">Sconfitta</span>');
+    document.getElementById('repMeta').innerHTML =
+      chip + '<span class="muted">' + fmtDate(game.date) + ' · ' + game.comp + ' · ' +
+      (game.venue === 'casa' ? 'in casa' : 'in trasferta') + '</span>';
+
+    var bu = bands('us',null), bt = bands('them',null);
+    var i = bu.indexOf(Math.max.apply(null,bu));
+    document.getElementById('repInsight').innerHTML =
+      'Il <b>' + pct(bu[i], us) + '</b> dei nostri punti nasce nella fascia <b>' + BUCKETS[i].t +
+      '</b>; nella stessa finestra ' + game.opp + ' ne produce il <b>' + pct(bt[i], them) + '</b>.';
+
+    buildChart(); buildTable(document.getElementById('tblUs'),'us'); buildTable(document.getElementById('tblThem'),'them');
+    renderExport();
+  }
+
+  function buildChart(){
+    var us = bands('us',null), them = bands('them',null);
+    var uT = us[0]+us[1]+us[2], tT = them[0]+them[1]+them[2];
+    var max = Math.max.apply(null, us.concat(them,[1]));
+    document.getElementById('chart').innerHTML = BUCKETS.map(function(b,i){
+      function track(cls,v,tot){
+        var w = v > 0 ? Math.max(v/max*100, 1.5) : 0;
+        return '<div class="track"><div class="barout"><div class="barin '+cls+'" style="width:'+w+'%"></div></div>'+
+               '<span class="val"><b>'+v+'</b> pt · '+pct(v,tot)+'</span></div>';
+      }
+      return '<div class="grp"><div class="grp-lab">'+b.t+' <span style="color:var(--ink-3)">'+b.n+'</span></div>'+
+             track('us',us[i],uT) + track('them',them[i],tT) + '</div>';
+    }).join('');
+  }
+
+  function buildTable(tbl, team){
+    var head = '<thead><tr><th>Periodo</th><th>0–8″</th><th>8–16″</th><th>16–24″</th><th>Tot</th><th>TL</th></tr></thead>';
+    var body = '<tbody>', grand=[0,0,0], gm=0, gx=0;
+    usedPeriods().forEach(function(p){
+      var m = counts(team,p), pts = matPoints(m), cells='';
+      m.forEach(function(row,i){
+        var rp = rowPoints(row); grand[i] += rp;
+        cells += '<td>'+rp+' <span style="color:var(--ink-3)">'+pct(rp,pts)+'</span></td>';
+      });
+      var f = ft(team,p); gm += f.made; gx += f.miss;
+      body += '<tr><td>'+PERIODS[p]+'</td>'+cells+'<td class="hi">'+pts+'</td><td>'+f.made+'/'+(f.made+f.miss)+'</td></tr>';
+    });
+    var gT = grand[0]+grand[1]+grand[2];
+    body += '<tr class="tot"><td>Partita</td>'+
+      grand.map(function(v){ return '<td>'+v+' '+pct(v,gT)+'</td>'; }).join('')+
+      '<td>'+gT+'</td><td>'+gm+'/'+(gm+gx)+'</td></tr></tbody>';
+    tbl.innerHTML = tbl.querySelector('caption').outerHTML + head + body;
+  }
+
+  /* ---------- export ---------- */
+  var expMode = 'testo';
+  var EXP_NOTE = {
+    testo:'Riassunto pronto da incollare nel gruppo dello staff. È quello che serve la sera stessa.',
+    csv:'Un evento per riga, dati grezzi. Si apre in Excel e regge qualsiasi analisi tu voglia fare dopo.',
+    pdf:'Una pagina A4 con tabelle e grafico, da allegare al referto o da stampare per lo spogliatoio.'
+  };
+  var EXP_ACTION = {testo:'Copia negli appunti', csv:'Scarica eventi.csv', pdf:'Scarica riepilogo.pdf'};
+
+  function textReport(){
+    var us = matPoints(counts('us',null)), them = matPoints(counts('them',null));
+    var bu = bands('us',null), bt = bands('them',null);
+    var fu = ft('us',null), fx = ft('them',null);
+    var L = [];
+    L.push('🏀 NOI ' + us + ' – ' + them + ' ' + game.opp.toUpperCase());
+    L.push(fmtDate(game.date) + ' · ' + game.comp + ' · ' + (game.venue==='casa'?'in casa':'in trasferta'));
+    L.push('');
+    L.push('PUNTI PER FASCIA DEI 24″');
+    BUCKETS.forEach(function(b,i){
+      L.push('  ' + b.t.padEnd(7,' ') + ' noi ' + String(bu[i]).padStart(2,' ') + ' (' + pct(bu[i],us) + ')' +
+             '   loro ' + String(bt[i]).padStart(2,' ') + ' (' + pct(bt[i],them) + ')');
+    });
+    L.push('');
+    L.push('TIRI LIBERI   noi ' + fu.made + '/' + (fu.made+fu.miss) + '   loro ' + fx.made + '/' + (fx.made+fx.miss));
+    L.push('');
+    L.push('PER QUARTO (noi)');
+    usedPeriods().forEach(function(p){
+      var b = bands('us',p);
+      L.push('  ' + PERIODS[p] + '  ' + b.join(' / ') + '  = ' + (b[0]+b[1]+b[2]) + ' pt');
+    });
+    return L.join('\n');
+  }
+
+  function csvReport(){
+    var L = ['partita,data,periodo,squadra,fascia,esito,punti'];
+    var slug = game.opp.toLowerCase().replace(/\s+/g,'-');
+    state.events.slice(0,6).forEach(function(e){
+      L.push([slug, game.date, PERIODS[e.p], e.team==='us'?'noi':'loro',
+              BUCKETS[e.b].t.replace('″',''), e.o===0?'tl-sbagliato':(e.o===1?'tl':e.o+'p'), e.o].join(','));
+    });
+    L.push('… ' + Math.max(state.events.length-6,0) + ' righe successive');
+    return L.join('\n');
+  }
+
+  function pdfReport(){
+    return [
+      '┌──────────────────────────────────┐',
+      '│  NOI ' + matPoints(counts('us',null)) + ' – ' + matPoints(counts('them',null)) + '  ' + game.opp,
+      '│  ' + fmtDate(game.date) + ' · ' + game.comp,
+      '├──────────────────────────────────┤',
+      '│  ▄▄▄▄▄▄▄▄▄  grafico distribuzione │',
+      '│  ▄▄▄▄▄▄                           │',
+      '│                                   │',
+      '│  Tabella per quarto — noi         │',
+      '│  Tabella per quarto — loro        │',
+      '│  Tiri liberi, totali di partita   │',
+      '└──────────────────────────────────┘'
+    ].join('\n');
+  }
+
+  function renderExport(){
+    var body = expMode==='testo' ? textReport() : (expMode==='csv' ? csvReport() : pdfReport());
+    var pre = document.getElementById('expPreview');
+    pre.textContent = body;
+    pre.classList.toggle('wrap-text', expMode==='testo');
+    document.getElementById('expNote').textContent = EXP_NOTE[expMode];
+    document.getElementById('expAction').textContent = EXP_ACTION[expMode];
+  }
+
+  document.getElementById('expTabs').addEventListener('click', function(e){
+    var b = e.target.closest('button[data-x]'); if(!b) return;
+    expMode = b.dataset.x;
+    this.querySelectorAll('button').forEach(function(x){ x.setAttribute('aria-pressed', String(x===b)); });
+    renderExport();
+  });
+  document.getElementById('expAction').addEventListener('click', function(){
+    if(expMode === 'testo'){
+      var t = textReport();
+      if(navigator.clipboard && navigator.clipboard.writeText){
+        navigator.clipboard.writeText(t).then(function(){ toast('Copiato'); },
+                                             function(){ toast('Copia non riuscita'); });
+      } else { toast('Copia non disponibile'); }
+    } else {
+      toast('Il download arriva nell’app');
+    }
+  });
+
+  /* ---------- toast ---------- */
+  var toastT = null;
+  function toast(msg){
+    var el = document.getElementById('toast');
+    el.textContent = msg; el.classList.add('on');
+    clearTimeout(toastT);
+    toastT = setTimeout(function(){ el.classList.remove('on'); }, 1800);
+  }
+
+  /* ---------- avvio ---------- */
+  buildGrid(document.getElementById('gridUs'),'us');
+  buildGrid(document.getElementById('gridThem'),'them');
+  buildFoot(document.getElementById('footUs'));
+  buildFoot(document.getElementById('footThem'));
+  seed(); applyGame(); buildPills(); render();
+  show('login');
+})();
+</script>

@@ -1,0 +1,82 @@
+---
+description: Design system di BaroStat 24 — colori, tipografia, componenti e regole d'interazione. Leggere prima di scrivere qualunque UI.
+alwaysApply: true
+---
+
+# Design system
+
+Riferimento visivo: `docs/mockup.html`, **approvato**. Aprilo e guardalo prima di costruire una schermata. Non reinventare il layout, non "migliorarlo": va tradotto in componenti, non riprogettato.
+
+## Tema
+
+**Scuro fisso, nessuna modalità chiara.** Non è una preferenza: si usa in palestra la sera, con luci al neon e riflessi sul vetro del tablet. Non aggiungere un theme switcher.
+
+## Colori
+
+I token stanno in `docs/design-tokens.css`, da incollare in `globals.css` e mappare su Tailwind.
+
+| Ruolo | Token | Hex |
+|---|---|---|
+| Fondo | `--ground` | `#0C0F14` |
+| Superficie | `--panel` | `#151A22` |
+| Superficie interattiva | `--panel-2` | `#1B222C` |
+| Bordo | `--line` | `#28313E` |
+| Bordo tenue | `--line-soft` | `#202834` |
+| Testo primario | `--ink` | `#E9EEF5` |
+| Testo secondario | `--ink-2` | `#9AA7B8` |
+| Testo terziario | `--ink-3` | `#6B7787` |
+| Identità NOI | `--us` | `#4CC2FF` |
+| Identità LORO | `--them` | `#FF7A59` |
+| Barre grafico NOI | `--us-mark` | `#2A9FD6` |
+| Barre grafico LORO | `--them-mark` | `#E4603C` |
+| Fascia 1 / 2 / 3 | `--f1` `--f2` `--f3` | `#17567A` `#2A9FD6` `#8AD4F5` |
+| Vittoria | `--win` | `#5FD08A` |
+| Sconfitta | `--loss` | `#C9556B` |
+| Attenzione / offline | `--warn` | `#F2C14E` |
+
+Regole:
+
+- I colori **testo** delle squadre (`--us`, `--them`) e quelli delle **barre** (`--us-mark`, `--them-mark`) sono diversi apposta: i primi sono schiariti per leggersi come testo sul fondo scuro, i secondi sono validati per contrasto e separazione su daltonismo come marks di grafico. Non usare gli uni al posto degli altri.
+- `--f1 → --f2 → --f3` è una **rampa sequenziale**, non tre colori categorici: l'ordine codifica la posizione nell'azione. Non riordinarla e non sostituirne uno.
+- Vittoria e sconfitta viaggiano **sempre con una lettera o una parola** (`V`, `S`, `Vittoria`), mai col solo colore.
+- Il testo non prende mai il colore di una serie: valori ed etichette restano `--ink` / `--ink-2` / `--ink-3`, e l'identità la porta il pallino o la barra accanto.
+
+## Tipografia
+
+Due famiglie, da Google Fonts, entrambe con fallback reale.
+
+- **Barlow Condensed** (500/600/700) — numeri, punteggi, titoli, etichette maiuscole, testo dei bottoni. È la voce da tabellone.
+- **Archivo** (400/500/600/700) — testo di interfaccia, paragrafi, campi dei form.
+
+Regole:
+
+- Ogni cifra che sta in colonna o cambia dal vivo porta `font-variant-numeric: tabular-nums`. Senza, i numeri ballano a ogni tap.
+- Le etichette maiuscole in Barlow Condensed hanno `letter-spacing` fra `.08em` e `.18em`, mai zero.
+- Le percentuali stanno accanto al valore assoluto, mai da sole.
+
+## Il componente centrale: la cella
+
+Nella schermata live, **la cella è insieme bottone e contatore**. La superficie con cui registri è quella che leggi. Questa è l'idea portante dell'app: non separarla mai in "input" più "display".
+
+- tap → +1, con `scale(.94)` alla pressione e un `bump` di 220ms alla conferma
+- pressione lunga 480ms → −1, con vibrazione più lunga
+- vibrazione: 12ms sull'aggiunta, 30ms sulla rimozione, via `navigator.vibrate` sempre in `try/catch`
+- una cella a zero è `--ink-3`; con valore prende `--ink` e il fondo tinto della squadra
+- la colonna `TL ✕` ha bordo tratteggiato e non si tinge: gli errori non devono brillare quanto i canestri
+
+## Layout
+
+**Tablet in orizzontale è il layout primario** (≥900×600): la schermata live occupa esattamente l'altezza della finestra, le due squadre affiancate, **mai uno scroll**. Il telefono è il ripiego e impila i due pannelli, stando comunque in una schermata da 390×844 senza scorrere.
+
+- gutter laterale minimo 12px a ogni larghezza
+- barra comandi fissa in basso, con `env(safe-area-inset-bottom)`
+- bersaglio minimo 56px di altezza sul telefono; su tablet le righe si distribuiscono sullo spazio disponibile
+- niente `position: fixed` che copra contenuto senza il corrispondente `padding-bottom`
+
+## Interazione — cosa non fare
+
+- Nessun modale o dialog nella schermata live: ruba il focus a chi ha gli occhi sul campo.
+- Nessuna conferma prima di registrare. L'errore si corregge dopo, con Annulla.
+- Nessuna animazione che sposti gli elementi di posto: il dito deve trovare la cella dove l'ha lasciata.
+- Rispetta `prefers-reduced-motion` disattivando animazioni e transizioni.
+- Ogni controllo ha uno stato di focus visibile.
