@@ -7,6 +7,7 @@ import { isAllowedGoogleProfile } from "@/lib/auth-domain";
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
 
 export const authConfig = {
+  secret: process.env.AUTH_SECRET,
   trustHost: true,
   session: { strategy: "jwt", maxAge: SESSION_MAX_AGE },
   pages: {
