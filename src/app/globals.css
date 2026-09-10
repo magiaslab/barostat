@@ -1584,23 +1584,6 @@ h2.t {
   font-size: 13px;
 }
 
-.roster {
-  border: 1px solid var(--line);
-  border-radius: 10px;
-  padding: 12px 14px;
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-}
-
-.rmember {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font-size: 12px;
-  color: var(--ink-2);
-}
-
 .av {
   width: 24px;
   height: 24px;
@@ -1617,14 +1600,6 @@ h2.t {
 
 .av-f2 {
   background: var(--f2);
-}
-
-.av-them {
-  background: var(--them-mark);
-}
-
-.av-win {
-  background: var(--win);
 }
 
 .who {

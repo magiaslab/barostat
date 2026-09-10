@@ -55,22 +55,6 @@ export default async function LoginPage({ searchParams }: PageProps) {
               la sessione resta valida anche in palestra senza rete.
             </p>
           </div>
-
-          <div className="roster">
-            <span className="eyebrow">Account autorizzati</span>
-            <div className="rmember">
-              <span className="av av-f2">AC</span>
-              Alessandro Cipriani · capo allenatore
-            </div>
-            <div className="rmember">
-              <span className="av av-them">MR</span>
-              Marco Rossi · assistente
-            </div>
-            <div className="rmember">
-              <span className="av av-win">GB</span>
-              Giulia Bianchi · statistiche
-            </div>
-          </div>
         </div>
       </div>
     </div>
