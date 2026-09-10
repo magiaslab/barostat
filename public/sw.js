@@ -1,6 +1,5 @@
-const SHELL = "barostat-shell-v2";
+const SHELL = "barostat-shell-v3";
 const SHELL_URLS = [
-  "/",
   "/manifest.webmanifest",
   "/icon.svg",
   "/icon-192.png",
@@ -40,7 +39,9 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     fetch(request)
       .then((response) => {
-        if (request.mode !== "navigate" && !response.redirected) {
+        // Anche le navigazioni: ma solo pagine vere. Un redirect al login ha
+        // redirected === true e resta fuori, così non finisce sotto /games.
+        if (response.ok && !response.redirected && response.type === "basic") {
           const copy = response.clone();
           void caches.open(SHELL).then((cache) => cache.put(request, copy));
         }
