@@ -1,6 +1,6 @@
 import { claimRecorder, getGame, listPendingEvents, markSynced } from "@/lib/local/dexie";
 import type { SyncedEntry } from "@/lib/local/dexie";
-import { getDeviceId } from "@/lib/local/device";
+import { ensureDeviceId } from "@/lib/local/device";
 
 export type FlushResult = {
   ok: boolean;
@@ -14,7 +14,7 @@ export async function flushGame(gameId: string): Promise<FlushResult> {
   if (!game) return { ok: false, pending: pending.length, reason: "network" };
 
   if (game.recorderDeviceId === "") {
-    game = (await claimRecorder(gameId, getDeviceId())) ?? game;
+    game = (await claimRecorder(gameId, ensureDeviceId())) ?? game;
   }
   if (!game.recorderDeviceId) {
     return { ok: false, pending: pending.length, reason: "network" };

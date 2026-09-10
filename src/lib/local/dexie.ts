@@ -1,6 +1,6 @@
 import Dexie, { type EntityTable } from "dexie";
 
-import { getDeviceId } from "@/lib/local/device";
+import { ensureDeviceId } from "@/lib/local/device";
 import type {
   Band,
   Competition,
@@ -107,7 +107,7 @@ export async function createGame(draft: GameDraft): Promise<Game> {
     competition: draft.competition,
     createdAt: Date.now(),
     closedAt: null,
-    recorderDeviceId: getDeviceId(),
+    recorderDeviceId: ensureDeviceId(),
   };
   await getDb().games.add(game);
   return game;

@@ -7,7 +7,11 @@ import { TeamPanel } from "@/components/live/team-panel";
 import { SyncPill } from "@/components/sync-pill";
 import { vibrate } from "@/lib/haptics";
 import { claimRecorder } from "@/lib/local/dexie";
-import { getDeviceId } from "@/lib/local/device";
+import {
+  ensureDeviceId,
+  readDeviceId,
+  subscribeDeviceId,
+} from "@/lib/local/device";
 import { useGameEvents } from "@/lib/local/use-game-events";
 import { useGame } from "@/lib/local/use-games";
 import { useGameSync } from "@/lib/local/use-sync";
@@ -48,8 +52,8 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
   } = useGameEvents(gameId, scopedPeriod);
   const sync = useGameSync(gameId, events.length);
   const deviceId = useSyncExternalStore(
-    () => () => {},
-    getDeviceId,
+    subscribeDeviceId,
+    readDeviceId,
     () => "",
   );
 
@@ -65,8 +69,12 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
   const gridOff = !ready || !gameReady || !game || readOnly;
 
   useEffect(() => {
+    ensureDeviceId();
+  }, []);
+
+  useEffect(() => {
     if (!game || game.recorderDeviceId !== "") return;
-    void claimRecorder(game.id, getDeviceId());
+    void claimRecorder(game.id, ensureDeviceId());
   }, [game]);
 
   if (!gameReady) {
