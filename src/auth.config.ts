@@ -1,7 +1,7 @@
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 
-import { isAllowedGoogleProfile, WORKSPACE_DOMAIN } from "@/lib/auth-domain";
+import { isAllowedGoogleProfile } from "@/lib/auth-domain";
 
 /** Trenta giorni: la palestra è spesso senza rete. */
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
@@ -15,9 +15,11 @@ export const authConfig = {
   },
   providers: [
     Google({
+      clientId: process.env.AUTH_GOOGLE_ID,
+      clientSecret: process.env.AUTH_GOOGLE_SECRET,
       authorization: {
         params: {
-          hd: WORKSPACE_DOMAIN,
+          hd: process.env.GOOGLE_WORKSPACE_DOMAIN,
           prompt: "select_account",
         },
       },
@@ -25,7 +27,10 @@ export const authConfig = {
   ],
   callbacks: {
     async signIn({ profile }) {
-      return isAllowedGoogleProfile(profile, WORKSPACE_DOMAIN);
+      return isAllowedGoogleProfile(
+        profile,
+        process.env.GOOGLE_WORKSPACE_DOMAIN,
+      );
     },
     authorized({ auth: session, request }) {
       const path = request.nextUrl.pathname;
