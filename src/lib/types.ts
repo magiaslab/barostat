@@ -2,6 +2,8 @@ export type Team = "us" | "them";
 export type Band = 0 | 1 | 2;
 export type Outcome = 3 | 2 | 1 | 0;
 export type Period = 0 | 1 | 2 | 3 | 4;
+export type Venue = "home" | "away";
+export type Competition = "league" | "cup" | "friendly";
 
 export type GameEvent = {
   id: string;
@@ -14,6 +16,16 @@ export type GameEvent = {
   seq: number;
   deletedAt: number | null;
   syncedAt: number | null;
+};
+
+export type Game = {
+  id: string;
+  opponent: string;
+  date: string;
+  venue: Venue;
+  competition: Competition;
+  createdAt: number;
+  closedAt: number | null;
 };
 
 export const BANDS: readonly Band[] = [0, 1, 2];
@@ -45,4 +57,22 @@ export const OUTCOME_LABEL: { readonly [O in Outcome]: string } = {
   2: "2P",
   1: "TL",
   0: "TL ✕",
+};
+
+export const VENUES: readonly Venue[] = ["home", "away"];
+export const COMPETITIONS: readonly Competition[] = [
+  "league",
+  "cup",
+  "friendly",
+];
+
+export const VENUE_LABEL: { readonly [V in Venue]: string } = {
+  home: "Casa",
+  away: "Trasferta",
+};
+
+export const COMPETITION_LABEL: { readonly [C in Competition]: string } = {
+  league: "Campionato",
+  cup: "Coppa",
+  friendly: "Amichevole",
 };

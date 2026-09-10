@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { TeamPanel } from "@/components/live/team-panel";
 import { vibrate } from "@/lib/haptics";
+import { useGame } from "@/lib/local/use-games";
 import { useGameEvents } from "@/lib/local/use-game-events";
 import {
   PERIODS,
@@ -16,7 +18,6 @@ import {
 
 type LiveScreenProps = {
   gameId: string;
-  opponent: string;
 };
 
 function shortName(name: string): string {
@@ -24,7 +25,9 @@ function shortName(name: string): string {
   return name.split(/\s+/)[0] ?? name;
 }
 
-export function LiveScreen({ gameId, opponent }: LiveScreenProps) {
+export function LiveScreen({ gameId }: LiveScreenProps) {
+  const { game, ready: gameReady } = useGame(gameId);
+  const opponent = game?.opponent ?? "Loro";
   const [period, setPeriod] = useState<Period>(0);
   const [scope, setScope] = useState<"period" | "game">("period");
   const scopedPeriod = scope === "period" ? period : undefined;
@@ -42,7 +45,32 @@ export function LiveScreen({ gameId, opponent }: LiveScreenProps) {
 
   const usName = "Noi";
   const themShort = shortName(opponent);
-  const gridOff = !ready;
+  const gridOff = !ready || !gameReady || !game;
+
+  if (!gameReady) {
+    return (
+      <div className="games-screen">
+        <div className="wrap">
+          <p className="muted">…</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!game) {
+    return (
+      <div className="games-screen">
+        <div className="wrap">
+          <div className="apphead">
+            <Link href="/games" className="link">
+              ← Partite
+            </Link>
+          </div>
+          <p className="muted">Partita non trovata.</p>
+        </div>
+      </div>
+    );
+  }
 
   function add(team: Team, band: Band, outcome: Outcome) {
     void append({ period, team, band, outcome });

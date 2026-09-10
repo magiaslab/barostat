@@ -6,6 +6,9 @@ import { afterEach, describe, expect, test } from "vitest";
 import {
   appendEvent,
   closeDb,
+  createGame,
+  getGame,
+  listGames,
   listLiveEvents,
   listPendingEvents,
   markSynced,
@@ -197,5 +200,39 @@ describe("store Dexie", () => {
     expect(stillPending[0]?.id).toBe(created.id);
     expect(stillPending[0]?.deletedAt).not.toBeNull();
     expect(stillPending[0]?.syncedAt).toBeNull();
+  });
+});
+
+describe("partite Dexie", () => {
+  test("createGame genera UUID, closedAt nullo e fallback Avversari", async () => {
+    const created = await createGame({
+      opponent: "   ",
+      date: "2026-09-10",
+      venue: "home",
+      competition: "league",
+    });
+    expect(created.id).toMatch(UUID_V4);
+    expect(created.opponent).toBe("Avversari");
+    expect(created.closedAt).toBeNull();
+    expect(await getGame(created.id)).toEqual(created);
+    expect(await getGame("inesistente")).toBeUndefined();
+  });
+
+  test("listGames ordina per data decrescente e poi per createdAt", async () => {
+    await createGame({
+      opponent: "Seveso",
+      date: "2026-09-04",
+      venue: "away",
+      competition: "league",
+    });
+    await createGame({
+      opponent: "Cernusco",
+      date: "2026-09-10",
+      venue: "home",
+      competition: "cup",
+    });
+
+    const listed = await listGames();
+    expect(listed.map((game) => game.opponent)).toEqual(["Cernusco", "Seveso"]);
   });
 });

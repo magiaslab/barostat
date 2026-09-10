@@ -1,6 +1,15 @@
 import Dexie, { type EntityTable } from "dexie";
 
-import type { Band, GameEvent, Outcome, Period, Team } from "@/lib/types";
+import type {
+  Band,
+  Competition,
+  Game,
+  GameEvent,
+  Outcome,
+  Period,
+  Team,
+  Venue,
+} from "@/lib/types";
 
 export type EventDraft = {
   gameId: string;
@@ -10,8 +19,16 @@ export type EventDraft = {
   outcome: Outcome;
 };
 
+export type GameDraft = {
+  opponent: string;
+  date: string;
+  venue: Venue;
+  competition: Competition;
+};
+
 export type BarostatDB = Dexie & {
   events: EntityTable<GameEvent, "id">;
+  games: EntityTable<Game, "id">;
 };
 
 let db: BarostatDB | undefined;
@@ -53,6 +70,10 @@ export function getDb(): BarostatDB {
             if (event.syncedAt === undefined) event.syncedAt = null;
           });
       });
+    db.version(3).stores({
+      events: "id, gameId, [gameId+seq]",
+      games: "id, date, createdAt",
+    });
   }
   return db;
 }
@@ -61,6 +82,36 @@ export async function closeDb(): Promise<void> {
   if (!db) return;
   db.close();
   db = undefined;
+}
+
+export async function createGame(draft: GameDraft): Promise<Game> {
+  const game: Game = {
+    id: newId(),
+    opponent: draft.opponent.trim() || "Avversari",
+    date: draft.date,
+    venue: draft.venue,
+    competition: draft.competition,
+    createdAt: Date.now(),
+    closedAt: null,
+  };
+  await getDb().games.add(game);
+  return game;
+}
+
+export async function getGame(id: string): Promise<Game | undefined> {
+  return getDb().games.get(id);
+}
+
+export async function listGames(): Promise<Game[]> {
+  const rows = await getDb().games.toArray();
+  return rows.sort((a, b) => {
+    if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+    return b.createdAt - a.createdAt;
+  });
+}
+
+export async function listAllEvents(): Promise<GameEvent[]> {
+  return getDb().events.toArray();
 }
 
 export async function listLiveEvents(gameId: string): Promise<GameEvent[]> {
