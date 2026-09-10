@@ -7,6 +7,43 @@ import { parseSyncPayload } from "@/lib/sync-payload";
 
 export const dynamic = "force-dynamic";
 
+export async function GET() {
+  const session = await auth();
+  if (!session?.user) {
+    return Response.json({ error: "unauthorized" }, { status: 401 });
+  }
+
+  const db = getDb();
+  const [gameRows, eventRows] = await Promise.all([
+    db.select().from(games),
+    db.select().from(events),
+  ]);
+
+  return Response.json({
+    games: gameRows.map((row) => ({
+      id: row.id,
+      opponent: row.opponent,
+      date: row.date,
+      venue: row.venue,
+      competition: row.competition,
+      createdAt: row.createdAt,
+      closedAt: row.closedAt ?? null,
+      recorderDeviceId: row.recorderDeviceId,
+    })),
+    events: eventRows.map((row) => ({
+      id: row.id,
+      gameId: row.gameId,
+      period: row.period,
+      team: row.team,
+      band: row.band,
+      outcome: row.outcome,
+      tsClient: row.tsClient,
+      seq: row.seq,
+      deletedAt: row.deletedAt ?? null,
+    })),
+  });
+}
+
 export async function POST(request: Request) {
   const session = await auth();
   if (!session?.user) {

@@ -1,6 +1,14 @@
-import { claimRecorder, getGame, listPendingEvents, markSynced } from "@/lib/local/dexie";
+import {
+  claimRecorder,
+  getGame,
+  hasOpenRecording,
+  listPendingEvents,
+  markSynced,
+  mergeRemoteSnapshot,
+} from "@/lib/local/dexie";
 import type { SyncedEntry } from "@/lib/local/dexie";
-import { ensureDeviceId } from "@/lib/local/device";
+import { ensureDeviceId, readDeviceId } from "@/lib/local/device";
+import { parseSyncSnapshot } from "@/lib/sync-payload";
 
 export type FlushResult = {
   ok: boolean;
@@ -8,7 +16,48 @@ export type FlushResult = {
   reason?: "recorder" | "auth" | "network";
 };
 
-export async function flushGame(gameId: string): Promise<FlushResult> {
+let pullInflight: Promise<{ ok: boolean }> | null = null;
+let lastPullAt = 0;
+const PULL_COOLDOWN_MS = 2000;
+
+export async function pullRemote(options?: {
+  force?: boolean;
+}): Promise<{ ok: boolean }> {
+  if (pullInflight) return pullInflight;
+  if (!options?.force && Date.now() - lastPullAt < PULL_COOLDOWN_MS) {
+    return { ok: true };
+  }
+
+  pullInflight = (async () => {
+    try {
+      if (typeof navigator !== "undefined" && navigator.onLine === false) {
+        return { ok: false };
+      }
+      if (await hasOpenRecording(readDeviceId())) {
+        return { ok: false };
+      }
+      const response = await fetch("/api/sync");
+      if (response.status === 401) return { ok: false };
+      if (!response.ok) return { ok: false };
+      const parsed = parseSyncSnapshot(await response.json());
+      if (!parsed) return { ok: false };
+      await mergeRemoteSnapshot(parsed.games, parsed.events);
+      lastPullAt = Date.now();
+      return { ok: true };
+    } catch {
+      return { ok: false };
+    } finally {
+      pullInflight = null;
+    }
+  })();
+
+  return pullInflight;
+}
+
+export async function flushGame(
+  gameId: string,
+  options?: { pull?: boolean },
+): Promise<FlushResult> {
   let game = await getGame(gameId);
   const pending = await listPendingEvents(gameId);
   if (!game) return { ok: false, pending: pending.length, reason: "network" };
@@ -48,6 +97,9 @@ export async function flushGame(gameId: string): Promise<FlushResult> {
       await markSynced(body.accepted);
     }
     const left = await listPendingEvents(gameId);
+    if (options?.pull !== false) {
+      await pullRemote();
+    }
     return { ok: true, pending: left.length };
   } catch {
     return { ok: false, pending: pending.length, reason: "network" };
@@ -59,12 +111,13 @@ export async function flushGames(gameIds: string[]): Promise<FlushResult> {
   let ok = true;
   let reason: FlushResult["reason"];
   for (const id of gameIds) {
-    const result = await flushGame(id);
+    const result = await flushGame(id, { pull: false });
     pending += result.pending;
     if (!result.ok && result.reason !== "recorder") {
       ok = false;
       reason = result.reason;
     }
   }
+  if (ok) await pullRemote();
   return { ok, pending, reason };
 }

@@ -854,6 +854,18 @@ h2.t {
   letter-spacing: 0.03em;
 }
 
+.games-screen button.syncpill {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+}
+
+.games-screen button.syncpill:disabled {
+  cursor: default;
+}
+
 .legend-row {
   display: flex;
   gap: 12px;

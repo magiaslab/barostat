@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import type { ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import { GameRow } from "@/components/games/game-row";
 import { InstallBanner } from "@/components/pwa/install-banner";
+import { pullRemote } from "@/lib/local/sync";
 import { useGameList } from "@/lib/local/use-games";
 
 type GameListProps = {
@@ -13,6 +14,19 @@ type GameListProps = {
 
 export function GameList({ header }: GameListProps) {
   const { rows, ready } = useGameList();
+  const [catalogReady, setCatalogReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void pullRemote().finally(() => {
+      if (!cancelled) setCatalogReady(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const waitingCatalog = !catalogReady && rows.length === 0;
 
   return (
     <div className="games-screen">
@@ -38,7 +52,7 @@ export function GameList({ header }: GameListProps) {
         </div>
 
         <div className="games">
-          {!ready ? (
+          {!ready || waitingCatalog ? (
             <p className="muted">…</p>
           ) : rows.length === 0 ? (
             <p className="muted">

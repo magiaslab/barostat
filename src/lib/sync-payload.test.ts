@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { parseSyncPayload } from "./sync-payload";
+import { parseSyncPayload, parseSyncSnapshot } from "./sync-payload";
 import type { Game, GameEvent } from "./types";
 
 const game: Game = {
@@ -33,6 +33,25 @@ describe("parseSyncPayload", () => {
       game,
       events: [event],
     });
+  });
+
+  test("accetta uno snapshot di lettura con più partite", () => {
+    const other: Game = { ...game, id: "g2", opponent: "Seveso" };
+    const otherEvent: GameEvent = { ...event, id: "e2", gameId: "g2" };
+    expect(
+      parseSyncSnapshot({
+        games: [game, other],
+        events: [event, otherEvent],
+      }),
+    ).toEqual({
+      games: [game, other],
+      events: [event, otherEvent],
+    });
+  });
+
+  test("rifiuta snapshot senza games o con evento orfano", () => {
+    expect(parseSyncSnapshot({ events: [event] })).toBeNull();
+    expect(parseSyncSnapshot({ games: [game], events: [{ ...event, gameId: "altro" }] })).toBeNull();
   });
 
   test("rifiuta eventi di un'altra partita o campi fuori dominio", () => {

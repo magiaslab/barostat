@@ -14,6 +14,11 @@ export type SyncPayload = {
   events: GameEvent[];
 };
 
+export type SyncSnapshot = {
+  games: Game[];
+  events: GameEvent[];
+};
+
 function isTeam(value: unknown): value is Team {
   return value === "us" || value === "them";
 }
@@ -56,6 +61,26 @@ export function parseSyncPayload(input: unknown): SyncPayload | null {
   return { game, events };
 }
 
+export function parseSyncSnapshot(input: unknown): SyncSnapshot | null {
+  if (typeof input !== "object" || input === null) return null;
+  const body = input as Record<string, unknown>;
+  if (!Array.isArray(body.games) || !Array.isArray(body.events)) return null;
+  const games: Game[] = [];
+  for (const row of body.games) {
+    const game = parseGame(row);
+    if (!game) return null;
+    games.push(game);
+  }
+  const known = new Set(games.map((game) => game.id));
+  const events: GameEvent[] = [];
+  for (const row of body.events) {
+    const event = parseEvent(row);
+    if (!event || !known.has(event.gameId)) return null;
+    events.push(event);
+  }
+  return { games, events };
+}
+
 function parseGame(input: unknown): Game | null {
   if (typeof input !== "object" || input === null) return null;
   const g = input as Record<string, unknown>;
@@ -78,11 +103,13 @@ function parseGame(input: unknown): Game | null {
   };
 }
 
-function parseEvent(input: unknown, gameId: string): GameEvent | null {
+function parseEvent(input: unknown, expectedGameId?: string): GameEvent | null {
   if (typeof input !== "object" || input === null) return null;
   const e = input as Record<string, unknown>;
   if (typeof e.id !== "string" || !e.id) return null;
-  if (e.gameId !== gameId) return null;
+  if (typeof e.gameId !== "string" || !e.gameId) return null;
+  if (expectedGameId !== undefined && e.gameId !== expectedGameId) return null;
+  const gameId = e.gameId;
   if (!isPeriod(e.period) || !isTeam(e.team) || !isBand(e.band)) return null;
   if (!isOutcome(e.outcome)) return null;
   if (!isFiniteNumber(e.tsClient) || !isFiniteNumber(e.seq)) return null;

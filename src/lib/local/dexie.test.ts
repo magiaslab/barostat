@@ -3,6 +3,10 @@ import "fake-indexeddb/auto";
 import Dexie from "dexie";
 import { afterEach, describe, expect, test } from "vitest";
 
+import { eventRows } from "@/lib/export/rows";
+import { score } from "@/lib/stats";
+import type { Game, GameEvent } from "@/lib/types";
+
 import {
   appendEvent,
   claimRecorder,
@@ -15,6 +19,7 @@ import {
   listLiveEvents,
   listPendingEvents,
   markSynced,
+  mergeRemoteSnapshot,
   newId,
   removeLastMatching,
   undoLast,
@@ -268,5 +273,118 @@ describe("partite Dexie", () => {
     const claimed = await claimRecorder(created.id, "dev-2");
     expect(claimed?.recorderDeviceId).toBe("dev-2");
     expect(await claimRecorder("inesistente", "dev-2")).toBeUndefined();
+  });
+});
+
+const remoteGame: Game = {
+  id: "g-remoto",
+  opponent: "Cernusco",
+  date: "2026-09-10",
+  venue: "home",
+  competition: "cup",
+  createdAt: 10,
+  closedAt: 20,
+  recorderDeviceId: "altro-device",
+};
+
+function remoteEvent(over: Partial<GameEvent> = {}): GameEvent {
+  return {
+    id: "e-remoto",
+    gameId: remoteGame.id,
+    period: 0,
+    team: "us",
+    band: 0,
+    outcome: 3,
+    tsClient: 1,
+    seq: 1,
+    deletedAt: null,
+    syncedAt: null,
+    ...over,
+  };
+}
+
+describe("mergeRemoteSnapshot", () => {
+  test("non tocca una riga locale con syncedAt a null", async () => {
+    const store = getDb();
+    const local = remoteEvent({ outcome: 2, syncedAt: null });
+    await store.games.put({ ...remoteGame, opponent: "Locale" });
+    await store.events.put(local);
+
+    await mergeRemoteSnapshot(
+      [{ ...remoteGame, opponent: "Server" }],
+      [remoteEvent({ outcome: 3 })],
+      99,
+    );
+
+    expect(await store.events.get(local.id)).toEqual(local);
+  });
+
+  test("un tombstone locale non ancora inviato non viene resuscitato", async () => {
+    const store = getDb();
+    const tombstone = remoteEvent({ deletedAt: 50, syncedAt: null });
+    await store.events.put(tombstone);
+
+    await mergeRemoteSnapshot(
+      [remoteGame],
+      [remoteEvent({ deletedAt: null })],
+      99,
+    );
+
+    const kept = await store.events.get(tombstone.id);
+    expect(kept?.deletedAt).toBe(50);
+    expect(kept?.syncedAt).toBeNull();
+  });
+
+  test("una partita con eventi in coda non viene sovrascritta", async () => {
+    const store = getDb();
+    await store.games.put({ ...remoteGame, opponent: "Locale" });
+    await store.events.put(remoteEvent({ syncedAt: null }));
+
+    await mergeRemoteSnapshot(
+      [
+        {
+          ...remoteGame,
+          opponent: "Server",
+          recorderDeviceId: "non-toccare",
+        },
+      ],
+      [remoteEvent({ outcome: 1 })],
+      99,
+    );
+
+    const game = await getGame(remoteGame.id);
+    expect(game?.opponent).toBe("Locale");
+    expect(game?.recorderDeviceId).toBe("altro-device");
+  });
+
+  test("un Dexie vuoto, dopo il pull, ha elenco riepilogo ed export", async () => {
+    await mergeRemoteSnapshot(
+      [remoteGame],
+      [remoteEvent({ outcome: 3 }), remoteEvent({ id: "e-2", seq: 2, outcome: 2 })],
+      99,
+    );
+
+    const listed = await listGames();
+    expect(listed).toHaveLength(1);
+    expect(listed[0]?.opponent).toBe("Cernusco");
+    expect(listed[0]?.recorderDeviceId).toBe("altro-device");
+
+    const live = await listLiveEvents(remoteGame.id);
+    expect(live).toHaveLength(2);
+    expect(score(live, remoteGame.id)).toEqual({ us: 5, them: 0 });
+    expect(eventRows(remoteGame, live)).toHaveLength(2);
+    expect(await getDb().events.get("e-2")).toMatchObject({ syncedAt: 99 });
+  });
+
+  test("non cancella una riga locale assente dal server", async () => {
+    const store = getDb();
+    const onlyLocal = remoteEvent({ id: "solo-locale", gameId: "g-locale" });
+    await store.games.put({ ...remoteGame, id: "g-locale", opponent: "Solo qui" });
+    await store.events.put(onlyLocal);
+
+    await mergeRemoteSnapshot([remoteGame], [remoteEvent()], 99);
+
+    expect(await getGame("g-locale")).toMatchObject({ opponent: "Solo qui" });
+    expect(await store.events.get("solo-locale")).toEqual(onlyLocal);
   });
 });

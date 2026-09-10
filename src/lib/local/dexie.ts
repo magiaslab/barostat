@@ -164,6 +164,40 @@ export async function listPendingEvents(gameId: string): Promise<GameEvent[]> {
   return rows.filter((event) => event.syncedAt === null);
 }
 
+export async function hasOpenRecording(deviceId: string): Promise<boolean> {
+  if (!deviceId) return false;
+  const rows = await getDb().games.toArray();
+  return rows.some(
+    (game) => game.closedAt === null && game.recorderDeviceId === deviceId,
+  );
+}
+
+/** Cache da Neon: non tocca la coda locale e non cancella ciò che il server non ha. */
+export async function mergeRemoteSnapshot(
+  remoteGames: readonly Game[],
+  remoteEvents: readonly GameEvent[],
+  syncedAt: number = Date.now(),
+): Promise<void> {
+  const store = getDb();
+  await store.transaction("rw", store.games, store.events, async () => {
+    for (const remote of remoteEvents) {
+      const local = await store.events.get(remote.id);
+      if (local && local.syncedAt === null) continue;
+      await store.events.put({ ...remote, syncedAt });
+    }
+
+    const queued = await store.events
+      .filter((event) => event.syncedAt === null)
+      .toArray();
+    const gamesWithQueue = new Set(queued.map((event) => event.gameId));
+
+    for (const remote of remoteGames) {
+      if (gamesWithQueue.has(remote.id)) continue;
+      await store.games.put(remote);
+    }
+  });
+}
+
 export type SyncedEntry = { id: string; deletedAt: number | null };
 
 export async function markSynced(entries: SyncedEntry[]): Promise<void> {
