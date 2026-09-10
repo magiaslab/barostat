@@ -6,11 +6,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   appendEvent,
   listLiveEvents,
+  removeLastMatching,
   undoLast,
   type EventDraft,
 } from "@/lib/local/dexie";
 import { score, teamStats, type Score, type TeamStats } from "@/lib/stats";
-import type { GameEvent, Period } from "@/lib/types";
+import type { Band, GameEvent, Outcome, Period, Team } from "@/lib/types";
 
 export type UseGameEventsResult = {
   events: GameEvent[];
@@ -19,6 +20,9 @@ export type UseGameEventsResult = {
   them: TeamStats;
   append: (draft: Omit<EventDraft, "gameId">) => Promise<GameEvent>;
   undo: () => Promise<GameEvent | null>;
+  removeMatching: (
+    match: Pick<GameEvent, "period" | "team" | "band" | "outcome">,
+  ) => Promise<GameEvent | null>;
   canUndo: boolean;
   ready: boolean;
 };
@@ -56,11 +60,9 @@ export function useGameEvents(
     async (draft: Omit<EventDraft, "gameId">) => {
       const event = await appendEvent({ ...draft, gameId });
       setSnapshot((prev) => {
-        const current = prev?.gameId === gameId ? prev.events : EMPTY_EVENTS;
-        if (current.some((row) => row.id === event.id)) {
-          return { gameId, events: current };
-        }
-        return { gameId, events: [...current, event] };
+        if (prev === null || prev.gameId !== gameId) return prev;
+        if (prev.events.some((row) => row.id === event.id)) return prev;
+        return { gameId, events: [...prev.events, event] };
       });
       return event;
     },
@@ -71,7 +73,7 @@ export function useGameEvents(
     const retracted = await undoLast(gameId);
     if (retracted) {
       setSnapshot((prev) => {
-        if (prev?.gameId !== gameId) return prev;
+        if (prev === null || prev.gameId !== gameId) return prev;
         return {
           gameId,
           events: prev.events.filter((row) => row.id !== retracted.id),
@@ -80,6 +82,34 @@ export function useGameEvents(
     }
     return retracted;
   }, [gameId]);
+
+  const removeMatching = useCallback(
+    async (match: {
+      period: Period;
+      team: Team;
+      band: Band;
+      outcome: Outcome;
+    }) => {
+      const retracted = await removeLastMatching(
+        gameId,
+        match.period,
+        match.team,
+        match.band,
+        match.outcome,
+      );
+      if (retracted) {
+        setSnapshot((prev) => {
+          if (prev === null || prev.gameId !== gameId) return prev;
+          return {
+            gameId,
+            events: prev.events.filter((row) => row.id !== retracted.id),
+          };
+        });
+      }
+      return retracted;
+    },
+    [gameId],
+  );
 
   const board = useMemo(() => score(events), [events]);
   const us = useMemo(() => teamStats(events, "us", period), [events, period]);
@@ -95,6 +125,7 @@ export function useGameEvents(
     them,
     append,
     undo,
+    removeMatching,
     canUndo: events.length > 0,
     ready,
   };
