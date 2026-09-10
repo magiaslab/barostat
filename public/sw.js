@@ -46,8 +46,11 @@ self.addEventListener("fetch", (event) => {
         void caches.open(SHELL).then((cache) => cache.put(request, copy));
         return response;
       })
-      .catch(() =>
-        caches.match(request).then((cached) => cached ?? caches.match("/games")),
-      ),
+      .catch(async () => {
+        const cached = await caches.match(request);
+        if (cached) return cached;
+        if (request.mode === "navigate") return caches.match("/games");
+        return Response.error();
+      }),
   );
 });
