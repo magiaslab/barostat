@@ -27,9 +27,9 @@ export const authConfig = {
     }),
   ],
   callbacks: {
-    async signIn({ profile }) {
+    async signIn({ profile, user }) {
       return isAllowedGoogleProfile(
-        profile,
+        { ...user, ...profile },
         process.env.GOOGLE_WORKSPACE_DOMAIN,
       );
     },
