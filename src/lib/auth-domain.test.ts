@@ -31,6 +31,12 @@ describe("isAllowedGoogleProfile", () => {
         "",
       ),
     ).toBe(false);
+    expect(
+      isAllowedGoogleProfile(
+        { email_verified: true, hd: "basketsanvincenzo.it" },
+        undefined,
+      ),
+    ).toBe(false);
     expect(isAllowedGoogleProfile(null, "basketsanvincenzo.it")).toBe(false);
   });
 });

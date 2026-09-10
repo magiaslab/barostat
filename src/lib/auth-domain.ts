@@ -1,5 +1,4 @@
-export const WORKSPACE_DOMAIN =
-  process.env.GOOGLE_WORKSPACE_DOMAIN ?? "basketsanvincenzo.it";
+export const WORKSPACE_DOMAIN = process.env.GOOGLE_WORKSPACE_DOMAIN;
 
 export function isAllowedGoogleProfile(
   profile: unknown,
