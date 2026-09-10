@@ -1,8 +1,6 @@
-const SHELL = "barostat-shell-v1";
+const SHELL = "barostat-shell-v2";
 const SHELL_URLS = [
   "/",
-  "/games",
-  "/login",
   "/manifest.webmanifest",
   "/icon.svg",
   "/icon-192.png",
@@ -42,8 +40,10 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     fetch(request)
       .then((response) => {
-        const copy = response.clone();
-        void caches.open(SHELL).then((cache) => cache.put(request, copy));
+        if (request.mode !== "navigate" && !response.redirected) {
+          const copy = response.clone();
+          void caches.open(SHELL).then((cache) => cache.put(request, copy));
+        }
         return response;
       })
       .catch(async () => {
