@@ -22,7 +22,7 @@ function event(
   team: Team,
   band: Band,
   outcome: Outcome,
-  extras: Partial<Pick<GameEvent, "period" | "deletedAt" | "gameId">> = {},
+  extras: Partial<Pick<GameEvent, "period" | "deletedAt" | "syncedAt" | "gameId">> = {},
 ): GameEvent {
   seq += 1;
   return {
@@ -35,6 +35,7 @@ function event(
     tsClient: seq,
     seq,
     deletedAt: extras.deletedAt ?? null,
+    syncedAt: extras.syncedAt ?? null,
   };
 }
 
@@ -174,6 +175,8 @@ describe("eventi singoli", () => {
     const events = [event("us", 0, 2)];
     expect(totalPoints(events, "them")).toBe(0);
     expect(gridCounts(events, "them")[0][2]).toBe(0);
+    const grid = gridCounts(events, "us");
+    expect(cellCount(grid, 0, 2)).toBe(1);
   });
 });
 
@@ -199,6 +202,18 @@ describe("filtri", () => {
     expect(totalPoints(events, "us")).toBe(3);
     expect(cellCount(events, "us", 0, 2)).toBe(0);
     expect(score(events).us).toBe(3);
+  });
+
+  test("eventi di due partite diverse non si sommano", () => {
+    const events = [
+      event("us", 0, 3, { gameId: "a" }),
+      event("us", 0, 2, { gameId: "b" }),
+    ];
+    expect(totalPoints(events, "us", undefined, "a")).toBe(3);
+    expect(totalPoints(events, "us", undefined, "b")).toBe(2);
+    expect(score(events, "a")).toEqual({ us: 3, them: 0 });
+    expect(cellCount(events, "us", 0, 3, undefined, "a")).toBe(1);
+    expect(cellCount(events, "us", 0, 2, undefined, "a")).toBe(0);
   });
 });
 

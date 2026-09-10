@@ -48,53 +48,21 @@ function matches(
   event: GameEvent,
   team: Team,
   period?: Period,
+  gameId?: string,
 ): boolean {
   if (!isLive(event) || event.team !== team) return false;
   if (period !== undefined && event.period !== period) return false;
+  if (gameId !== undefined && event.gameId !== gameId) return false;
   return true;
+}
+
+function isGrid(source: readonly GameEvent[] | GridCounts): source is GridCounts {
+  return !Array.isArray(source);
 }
 
 /** L'esito è già il valore in punti: TL sbagliato vale 0. */
 export function pointsOf(outcome: Outcome): number {
   return outcome;
-}
-
-export function gridCounts(
-  events: readonly GameEvent[],
-  team: Team,
-  period?: Period,
-): GridCounts {
-  const grid = emptyGrid();
-
-  for (const event of events) {
-    if (!matches(event, team, period)) continue;
-    grid[event.band][event.outcome] += 1;
-  }
-
-  return grid;
-}
-
-export function cellCount(
-  events: readonly GameEvent[],
-  team: Team,
-  band: Band,
-  outcome: Outcome,
-  period?: Period,
-): number {
-  return gridCounts(events, team, period)[band][outcome];
-}
-
-export function pointsByBand(
-  events: readonly GameEvent[],
-  team: Team,
-  period?: Period,
-): BandPoints {
-  const grid = gridCounts(events, team, period);
-  return {
-    0: bandTotal(grid[0]),
-    1: bandTotal(grid[1]),
-    2: bandTotal(grid[2]),
-  };
 }
 
 function bandTotal(counts: OutcomeCounts): number {
@@ -105,41 +73,15 @@ function bandTotal(counts: OutcomeCounts): number {
   return total;
 }
 
-export function totalPoints(
-  events: readonly GameEvent[],
-  team: Team,
-  period?: Period,
-): number {
-  const bands = pointsByBand(events, team, period);
-  return bands[0] + bands[1] + bands[2];
-}
-
-export function pointsByPeriod(
-  events: readonly GameEvent[],
-  team: Team,
-): PeriodPoints {
+function pointsByBandFromGrid(grid: GridCounts): BandPoints {
   return {
-    0: totalPoints(events, team, 0),
-    1: totalPoints(events, team, 1),
-    2: totalPoints(events, team, 2),
-    3: totalPoints(events, team, 3),
-    4: totalPoints(events, team, 4),
+    0: bandTotal(grid[0]),
+    1: bandTotal(grid[1]),
+    2: bandTotal(grid[2]),
   };
 }
 
-export function score(events: readonly GameEvent[]): Score {
-  return {
-    us: totalPoints(events, "us"),
-    them: totalPoints(events, "them"),
-  };
-}
-
-export function freeThrows(
-  events: readonly GameEvent[],
-  team: Team,
-  period?: Period,
-): FreeThrows {
-  const grid = gridCounts(events, team, period);
+function freeThrowsFromGrid(grid: GridCounts): FreeThrows {
   let made = 0;
   let missed = 0;
   for (const band of BANDS) {
@@ -147,6 +89,103 @@ export function freeThrows(
     missed += grid[band][0];
   }
   return { made, missed, attempted: made + missed };
+}
+
+export function gridCounts(
+  events: readonly GameEvent[],
+  team: Team,
+  period?: Period,
+  gameId?: string,
+): GridCounts {
+  const grid = emptyGrid();
+
+  for (const event of events) {
+    if (!matches(event, team, period, gameId)) continue;
+    grid[event.band][event.outcome] += 1;
+  }
+
+  return grid;
+}
+
+export function cellCount(
+  grid: GridCounts,
+  band: Band,
+  outcome: Outcome,
+): number;
+export function cellCount(
+  events: readonly GameEvent[],
+  team: Team,
+  band: Band,
+  outcome: Outcome,
+  period?: Period,
+  gameId?: string,
+): number;
+export function cellCount(
+  source: readonly GameEvent[] | GridCounts,
+  teamOrBand: Team | Band,
+  bandOrOutcome: Band | Outcome,
+  outcome?: Outcome,
+  period?: Period,
+  gameId?: string,
+): number {
+  if (isGrid(source)) {
+    return source[teamOrBand as Band][bandOrOutcome as Outcome];
+  }
+  return gridCounts(
+    source,
+    teamOrBand as Team,
+    period,
+    gameId,
+  )[bandOrOutcome as Band][outcome as Outcome];
+}
+
+export function pointsByBand(
+  events: readonly GameEvent[],
+  team: Team,
+  period?: Period,
+  gameId?: string,
+): BandPoints {
+  return pointsByBandFromGrid(gridCounts(events, team, period, gameId));
+}
+
+export function totalPoints(
+  events: readonly GameEvent[],
+  team: Team,
+  period?: Period,
+  gameId?: string,
+): number {
+  const bands = pointsByBandFromGrid(gridCounts(events, team, period, gameId));
+  return bands[0] + bands[1] + bands[2];
+}
+
+export function pointsByPeriod(
+  events: readonly GameEvent[],
+  team: Team,
+  gameId?: string,
+): PeriodPoints {
+  return {
+    0: totalPoints(events, team, 0, gameId),
+    1: totalPoints(events, team, 1, gameId),
+    2: totalPoints(events, team, 2, gameId),
+    3: totalPoints(events, team, 3, gameId),
+    4: totalPoints(events, team, 4, gameId),
+  };
+}
+
+export function score(events: readonly GameEvent[], gameId?: string): Score {
+  return {
+    us: totalPoints(events, "us", undefined, gameId),
+    them: totalPoints(events, "them", undefined, gameId),
+  };
+}
+
+export function freeThrows(
+  events: readonly GameEvent[],
+  team: Team,
+  period?: Period,
+  gameId?: string,
+): FreeThrows {
+  return freeThrowsFromGrid(gridCounts(events, team, period, gameId));
 }
 
 export function percent(part: number, total: number): number | null {
@@ -167,9 +206,10 @@ export function teamStats(
   events: readonly GameEvent[],
   team: Team,
   period?: Period,
+  gameId?: string,
 ): TeamStats {
-  const grid = gridCounts(events, team, period);
-  const byBand = pointsByBand(events, team, period);
+  const grid = gridCounts(events, team, period, gameId);
+  const byBand = pointsByBandFromGrid(grid);
   const total = byBand[0] + byBand[1] + byBand[2];
   return {
     grid,
@@ -180,6 +220,6 @@ export function teamStats(
       1: formatPercent(byBand[1], total),
       2: formatPercent(byBand[2], total),
     },
-    freeThrows: freeThrows(events, team, period),
+    freeThrows: freeThrowsFromGrid(grid),
   };
 }
