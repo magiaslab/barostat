@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
 import { auth, signIn } from "@/auth";
-import { WORKSPACE_DOMAIN } from "@/lib/auth-domain";
+import { readWorkspaceDomain } from "@/lib/auth-domain";
 
 export const metadata: Metadata = { title: "Accesso" };
 
@@ -16,6 +16,7 @@ export default async function LoginPage({ searchParams }: PageProps) {
 
   const { error } = await searchParams;
   const denied = error === "AccessDenied" || error === "Configuration";
+  const workspaceDomain = readWorkspaceDomain();
 
   return (
     <div className="login-screen">
@@ -46,8 +47,8 @@ export default async function LoginPage({ searchParams }: PageProps) {
             {error ? (
               <p className="login-error" role="alert">
                 {denied
-                  ? WORKSPACE_DOMAIN
-                    ? `Serve un account Google verificato del dominio ${WORKSPACE_DOMAIN}.`
+                  ? workspaceDomain
+                    ? `Serve un account Google verificato del dominio ${workspaceDomain}.`
                     : "Questo account non è autorizzato."
                   : "Accesso non riuscito."}
               </p>

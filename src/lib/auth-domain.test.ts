@@ -1,24 +1,21 @@
 import { describe, expect, test } from "vitest";
 
-import { isAllowedGoogleProfile } from "./auth-domain";
+import { claimsFromIdToken, isAllowedGoogleProfile } from "./auth-domain";
 
 describe("isAllowedGoogleProfile", () => {
-  test("accetta hd del dominio e email verificata", () => {
+  test("accetta un'email del dominio anche senza hd né flag verified", () => {
     expect(
       isAllowedGoogleProfile(
-        { email_verified: true, hd: "basketsanvincenzo.it" },
+        { email: "a.cipriani@basketsanvincenzo.it" },
         "basketsanvincenzo.it",
       ),
     ).toBe(true);
   });
 
-  test("accetta email verificata del dominio se hd manca", () => {
+  test("accetta hd del dominio se l'email manca", () => {
     expect(
       isAllowedGoogleProfile(
-        {
-          email: "alessandro@basketsanvincenzo.it",
-          emailVerified: true,
-        },
+        { email_verified: true, hd: "basketsanvincenzo.it" },
         "basketsanvincenzo.it",
       ),
     ).toBe(true);
@@ -27,13 +24,13 @@ describe("isAllowedGoogleProfile", () => {
   test("accetta il dominio anche se l'env ha virgolette o spazi", () => {
     expect(
       isAllowedGoogleProfile(
-        { email_verified: true, hd: "basketsanvincenzo.it" },
+        { email: "a.cipriani@basketsanvincenzo.it" },
         ' "basketsanvincenzo.it" ',
       ),
     ).toBe(true);
   });
 
-  test("rifiuta hd diverso, non verificato, o dominio assente", () => {
+  test("rifiuta hd diverso, non verificato, gmail o dominio assente", () => {
     expect(
       isAllowedGoogleProfile(
         { email_verified: true, hd: "altro.example" },
@@ -42,7 +39,10 @@ describe("isAllowedGoogleProfile", () => {
     ).toBe(false);
     expect(
       isAllowedGoogleProfile(
-        { email_verified: false, hd: "basketsanvincenzo.it" },
+        {
+          email: "a.cipriani@basketsanvincenzo.it",
+          email_verified: false,
+        },
         "basketsanvincenzo.it",
       ),
     ).toBe(false);
@@ -54,16 +54,35 @@ describe("isAllowedGoogleProfile", () => {
     ).toBe(false);
     expect(
       isAllowedGoogleProfile(
-        { email_verified: true, hd: "basketsanvincenzo.it" },
+        { email: "a.cipriani@basketsanvincenzo.it" },
         "",
       ),
     ).toBe(false);
     expect(
       isAllowedGoogleProfile(
-        { email_verified: true, hd: "basketsanvincenzo.it" },
+        { email: "a.cipriani@basketsanvincenzo.it" },
         undefined,
       ),
     ).toBe(false);
     expect(isAllowedGoogleProfile(null, "basketsanvincenzo.it")).toBe(false);
+  });
+});
+
+describe("claimsFromIdToken", () => {
+  test("legge email e hd dal payload, ignora token malformati", () => {
+    const payload = btoa(
+      JSON.stringify({
+        email: "a.cipriani@basketsanvincenzo.it",
+        email_verified: true,
+        hd: "basketsanvincenzo.it",
+      }),
+    );
+    expect(claimsFromIdToken(`aaa.${payload}.bbb`)).toMatchObject({
+      email: "a.cipriani@basketsanvincenzo.it",
+      email_verified: true,
+      hd: "basketsanvincenzo.it",
+    });
+    expect(claimsFromIdToken("not-a-jwt")).toEqual({});
+    expect(claimsFromIdToken(undefined)).toEqual({});
   });
 });

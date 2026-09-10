@@ -1,7 +1,11 @@
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 
-import { isAllowedGoogleProfile } from "@/lib/auth-domain";
+import {
+  claimsFromIdToken,
+  isAllowedGoogleProfile,
+  readWorkspaceDomain,
+} from "@/lib/auth-domain";
 
 /** Trenta giorni: la palestra è spesso senza rete. */
 export const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
@@ -20,18 +24,34 @@ export const authConfig = {
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
       authorization: {
         params: {
-          hd: process.env.GOOGLE_WORKSPACE_DOMAIN,
+          hd: readWorkspaceDomain(),
           prompt: "select_account",
         },
       },
     }),
   ],
   callbacks: {
-    async signIn({ profile, user }) {
-      return isAllowedGoogleProfile(
-        { ...user, ...profile },
-        process.env.GOOGLE_WORKSPACE_DOMAIN,
-      );
+    async signIn({ profile, user, account }) {
+      const domain = readWorkspaceDomain();
+      const merged: Record<string, unknown> = {
+        ...user,
+        ...profile,
+        ...claimsFromIdToken(account?.id_token),
+      };
+      const allowed = isAllowedGoogleProfile(merged, domain);
+      if (!allowed) {
+        const email =
+          typeof merged.email === "string" ? merged.email.toLowerCase() : "";
+        console.info("[auth] accesso rifiutato", {
+          domainSet: Boolean(domain),
+          domainLength: domain?.length ?? 0,
+          hasEmail: Boolean(email),
+          emailHost: email.split("@")[1] ?? "",
+          hd: typeof merged.hd === "string" ? "present" : "absent",
+          unverified: merged.email_verified === false,
+        });
+      }
+      return allowed;
     },
     authorized({ auth: session, request }) {
       const path = request.nextUrl.pathname;
