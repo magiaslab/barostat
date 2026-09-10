@@ -13,6 +13,7 @@ export type GameEvent = {
   tsClient: number;
   seq: number;
   deletedAt: number | null;
+  syncedAt: number | null;
 };
 
 export const BANDS: readonly Band[] = [0, 1, 2];
