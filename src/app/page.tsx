@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation";
+
 export default function Home() {
-  return <main className="min-h-dvh bg-ground" />;
+  redirect("/games/demo");
 }
