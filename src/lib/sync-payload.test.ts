@@ -1,0 +1,45 @@
+import { describe, expect, test } from "vitest";
+
+import { parseSyncPayload } from "./sync-payload";
+import type { Game, GameEvent } from "./types";
+
+const game: Game = {
+  id: "g1",
+  opponent: "Cernusco",
+  date: "2026-09-10",
+  venue: "home",
+  competition: "cup",
+  createdAt: 1,
+  closedAt: null,
+  recorderDeviceId: "dev-1",
+};
+
+const event: GameEvent = {
+  id: "e1",
+  gameId: "g1",
+  period: 0,
+  team: "us",
+  band: 0,
+  outcome: 3,
+  tsClient: 1,
+  seq: 1,
+  deletedAt: null,
+  syncedAt: null,
+};
+
+describe("parseSyncPayload", () => {
+  test("accetta un batch valido", () => {
+    expect(parseSyncPayload({ game, events: [event] })).toEqual({
+      game,
+      events: [event],
+    });
+  });
+
+  test("rifiuta eventi di un'altra partita o campi fuori dominio", () => {
+    expect(
+      parseSyncPayload({ game, events: [{ ...event, gameId: "altro" }] }),
+    ).toBeNull();
+    expect(parseSyncPayload({ game, events: [{ ...event, band: 9 }] })).toBeNull();
+    expect(parseSyncPayload({ game: { ...game, venue: "casa" }, events: [] })).toBeNull();
+  });
+});

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Archivo, Barlow_Condensed } from "next/font/google";
 
+import { RegisterSw } from "@/components/pwa/register-sw";
 import { cn } from "@/lib/utils";
 
 import "./globals.css";
@@ -55,7 +56,10 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="it"
       className={cn("dark", barlowCondensed.variable, archivo.variable)}
     >
-      <body>{children}</body>
+      <body>
+        <RegisterSw />
+        {children}
+      </body>
     </html>
   );
 }

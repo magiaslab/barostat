@@ -1492,3 +1492,230 @@ h2.t {
     transition: none;
   }
 }
+
+/* ============ 1. ACCESSO ============ */
+.login-screen {
+  min-height: 100svh;
+  background: var(--ground);
+}
+
+.login-box {
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 26px;
+  max-width: 380px;
+  margin: 0 auto;
+  padding-block: 40px;
+}
+
+.mark {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 74px;
+}
+
+.mark i {
+  height: 9px;
+  border-radius: 2px;
+  display: block;
+}
+
+.mark i:nth-child(1) {
+  background: var(--f1);
+  width: 100%;
+}
+
+.mark i:nth-child(2) {
+  background: var(--f2);
+  width: 72%;
+}
+
+.mark i:nth-child(3) {
+  background: var(--f3);
+  width: 44%;
+}
+
+.login-title {
+  margin-top: 18px;
+}
+
+.tag {
+  font-family: var(--display);
+  font-weight: 500;
+  font-size: 17px;
+  letter-spacing: 0.04em;
+  color: var(--ink-2);
+  margin: 6px 0 0;
+}
+
+.gbtn {
+  width: 100%;
+  background: #ffffff;
+  color: #1f2328;
+  border: 0;
+  border-radius: 10px;
+  padding: 13px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  font-family: var(--body);
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+.gbtn svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.login-note {
+  margin: 12px 0 0;
+}
+
+.login-error {
+  margin: 12px 0 0;
+  color: var(--loss);
+  font-size: 13px;
+}
+
+.roster {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.rmember {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.av {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  flex: none;
+  display: grid;
+  place-items: center;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 12px;
+  color: #0c0f14;
+  object-fit: cover;
+}
+
+.av-f2 {
+  background: var(--f2);
+}
+
+.av-them {
+  background: var(--them-mark);
+}
+
+.av-win {
+  background: var(--win);
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.who-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.who-name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.who-meta {
+  font-size: 10px;
+  color: var(--ink-3);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.head-tools {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex: none;
+}
+
+.games-screen .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.games-screen .dot.on {
+  background: var(--win);
+}
+
+.games-screen .dot.off {
+  background: var(--warn);
+}
+
+.games-screen .apphead .link {
+  background: none;
+  border: 0;
+  color: var(--ink-3);
+  font-size: 12px;
+  cursor: pointer;
+  padding: 6px 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.install-banner {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+
+.install-banner p {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: var(--ink-2);
+  line-height: 1.45;
+}
+
+.install-banner .btn {
+  width: 100%;
+}
+
+.install-banner .link {
+  margin-top: 8px;
+}
+
+.readonly-banner {
+  margin: 0 0 10px;
+  padding: 8px 10px;
+  border: 1px solid #5c4a1b;
+  background: #3a2f10;
+  color: var(--warn);
+  border-radius: 8px;
+  font-size: 12px;
+}

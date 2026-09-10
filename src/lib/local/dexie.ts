@@ -1,5 +1,6 @@
 import Dexie, { type EntityTable } from "dexie";
 
+import { getDeviceId } from "@/lib/local/device";
 import type {
   Band,
   Competition,
@@ -74,6 +75,19 @@ export function getDb(): BarostatDB {
       events: "id, gameId, [gameId+seq]",
       games: "id, date, createdAt",
     });
+    db.version(4)
+      .stores({
+        events: "id, gameId, [gameId+seq]",
+        games: "id, date, createdAt",
+      })
+      .upgrade(async (tx) => {
+        await tx
+          .table("games")
+          .toCollection()
+          .modify((game: { recorderDeviceId?: string }) => {
+            if (!game.recorderDeviceId) game.recorderDeviceId = "";
+          });
+      });
   }
   return db;
 }
@@ -93,6 +107,7 @@ export async function createGame(draft: GameDraft): Promise<Game> {
     competition: draft.competition,
     createdAt: Date.now(),
     closedAt: null,
+    recorderDeviceId: getDeviceId(),
   };
   await getDb().games.add(game);
   return game;
@@ -110,6 +125,21 @@ export async function closeGame(id: string): Promise<Game | undefined> {
   const closed: Game = { ...game, closedAt: Date.now() };
   await store.games.put(closed);
   return closed;
+}
+
+export async function claimRecorder(
+  id: string,
+  deviceId: string,
+): Promise<Game | undefined> {
+  const store = getDb();
+  const game = await store.games.get(id);
+  if (!game) return undefined;
+  if (game.recorderDeviceId === "") {
+    const claimed = { ...game, recorderDeviceId: deviceId };
+    await store.games.put(claimed);
+    return claimed;
+  }
+  return game;
 }
 
 export async function listGames(): Promise<Game[]> {

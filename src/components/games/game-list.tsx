@@ -1,23 +1,24 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { GameRow } from "@/components/games/game-row";
+import { InstallBanner } from "@/components/pwa/install-banner";
 import { useGameList } from "@/lib/local/use-games";
 
-export function GameList() {
+type GameListProps = {
+  header: ReactNode;
+};
+
+export function GameList({ header }: GameListProps) {
   const { rows, ready } = useGameList();
 
   return (
     <div className="games-screen">
       <div className="wrap">
-        <div className="apphead">
-          <span className="eyebrow">BaroStat 24</span>
-          <span className="syncpill">
-            <i className="dot off" aria-hidden />
-            <span>Offline · salvato sul tablet</span>
-          </span>
-        </div>
+        {header}
+        <InstallBanner />
 
         <h1 className="t">Partite</h1>
         <div className="legend-row">

@@ -11,6 +11,7 @@ const game: Game = {
   competition: "league",
   createdAt: 1,
   closedAt: null,
+  recorderDeviceId: "dev-1",
 };
 
 function ev(partial: Partial<GameEvent> & Pick<GameEvent, "seq" | "outcome">): GameEvent {

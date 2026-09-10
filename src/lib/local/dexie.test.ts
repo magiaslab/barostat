@@ -5,9 +5,11 @@ import { afterEach, describe, expect, test } from "vitest";
 
 import {
   appendEvent,
+  claimRecorder,
   closeDb,
   closeGame,
   createGame,
+  getDb,
   getGame,
   listGames,
   listLiveEvents,
@@ -215,6 +217,7 @@ describe("partite Dexie", () => {
     expect(created.id).toMatch(UUID_V4);
     expect(created.opponent).toBe("Avversari");
     expect(created.closedAt).toBeNull();
+    expect(created.recorderDeviceId).toBeTruthy();
     expect(await getGame(created.id)).toEqual(created);
     expect(await getGame("inesistente")).toBeUndefined();
   });
@@ -249,5 +252,21 @@ describe("partite Dexie", () => {
     const again = await closeGame(created.id);
     expect(again?.closedAt).toBe(closed?.closedAt);
     expect(await closeGame("inesistente")).toBeUndefined();
+  });
+
+  test("claimRecorder riempie solo un registratore vuoto", async () => {
+    const created = await createGame({
+      opponent: "Cernusco",
+      date: "2026-09-10",
+      venue: "home",
+      competition: "cup",
+    });
+    const kept = await claimRecorder(created.id, "altro-device");
+    expect(kept?.recorderDeviceId).toBe(created.recorderDeviceId);
+
+    await getDb().games.put({ ...created, recorderDeviceId: "" });
+    const claimed = await claimRecorder(created.id, "dev-2");
+    expect(claimed?.recorderDeviceId).toBe("dev-2");
+    expect(await claimRecorder("inesistente", "dev-2")).toBeUndefined();
   });
 });

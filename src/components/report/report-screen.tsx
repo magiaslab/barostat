@@ -9,6 +9,7 @@ import { ExportPanel } from "@/components/report/export-panel";
 import { PeriodTable } from "@/components/report/period-table";
 import { formatReportMeta } from "@/lib/format";
 import { closeGame } from "@/lib/local/dexie";
+import { flushGame } from "@/lib/local/sync";
 import { useGameEvents } from "@/lib/local/use-game-events";
 import { useGame } from "@/lib/local/use-games";
 import { insight } from "@/lib/report";
@@ -69,6 +70,7 @@ export function ReportScreen({ gameId }: ReportScreenProps) {
     if (closing || !game || game.closedAt !== null) return;
     setClosing(true);
     await closeGame(game.id);
+    void flushGame(game.id);
     setToast("Partita archiviata");
     window.setTimeout(() => {
       router.push("/games");

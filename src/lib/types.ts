@@ -26,6 +26,7 @@ export type Game = {
   competition: Competition;
   createdAt: number;
   closedAt: number | null;
+  recorderDeviceId: string;
 };
 
 export const BANDS: readonly Band[] = [0, 1, 2];

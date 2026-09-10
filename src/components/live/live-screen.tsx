@@ -1,12 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { TeamPanel } from "@/components/live/team-panel";
+import { SyncPill } from "@/components/sync-pill";
 import { vibrate } from "@/lib/haptics";
-import { useGame } from "@/lib/local/use-games";
+import { claimRecorder } from "@/lib/local/dexie";
+import { getDeviceId } from "@/lib/local/device";
 import { useGameEvents } from "@/lib/local/use-game-events";
+import { useGame } from "@/lib/local/use-games";
+import { useGameSync } from "@/lib/local/use-sync";
 import {
   PERIODS,
   PERIOD_LABEL,
@@ -42,10 +46,28 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
     canUndo,
     ready,
   } = useGameEvents(gameId, scopedPeriod);
+  const sync = useGameSync(gameId, events.length);
+  const [deviceId, setDeviceId] = useState<string | null>(null);
 
   const usName = "Noi";
   const themShort = shortName(opponent);
-  const gridOff = !ready || !gameReady || !game;
+  const foreignRecorder = Boolean(
+    deviceId &&
+      game &&
+      game.recorderDeviceId &&
+      game.recorderDeviceId !== deviceId,
+  );
+  const readOnly = foreignRecorder || sync.reason === "recorder";
+  const gridOff = !ready || !gameReady || !game || readOnly;
+
+  useEffect(() => {
+    setDeviceId(getDeviceId());
+  }, []);
+
+  useEffect(() => {
+    if (!game || game.recorderDeviceId !== "") return;
+    void claimRecorder(game.id, getDeviceId());
+  }, [game]);
 
   if (!gameReady) {
     return (
@@ -73,6 +95,7 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
   }
 
   function add(team: Team, band: Band, outcome: Outcome) {
+    if (readOnly) return;
     void append({ period, team, band, outcome });
   }
 
@@ -81,6 +104,7 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
     band: Band,
     outcome: Outcome,
   ): Promise<boolean> {
+    if (readOnly) return false;
     const retracted = await removeMatching({
       period,
       team,
@@ -124,16 +148,21 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
               </div>
             </div>
             <div className="sync">
-              <span className="syncpill">
-                <i className="dot off" aria-hidden />
-                <span>Offline · salvato sul tablet</span>
-              </span>
+              <SyncPill lastOk={sync.lastOk} pending={sync.pending} />
               <span className="syncmeta">
-                {ready ? `${events.length} eventi in coda` : "…"}
+                {sync.pending === 0
+                  ? `${events.length} eventi`
+                  : `${sync.pending} in coda`}
               </span>
             </div>
           </div>
         </header>
+
+        {readOnly ? (
+          <p className="readonly-banner" role="status">
+            Questa partita è in sola lettura su questo dispositivo.
+          </p>
+        ) : null}
 
         <main className="panels">
           <TeamPanel
@@ -160,7 +189,7 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
           <button
             type="button"
             className="btn undo"
-            disabled={!ready || !canUndo}
+            disabled={!ready || !canUndo || readOnly}
             onClick={() => {
               void undo();
               vibrate(30);
