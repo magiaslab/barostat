@@ -26,11 +26,16 @@ export function useGameSync(gameId: string, eventCount: number): SyncStatus {
   }, [gameId]);
 
   useEffect(() => {
-    void run();
+    const start = window.setTimeout(() => {
+      void run();
+    }, 0);
     const id = window.setInterval(() => {
       void run();
     }, 15000);
-    return () => window.clearInterval(id);
+    return () => {
+      window.clearTimeout(start);
+      window.clearInterval(id);
+    };
   }, [run, eventCount]);
 
   return status;

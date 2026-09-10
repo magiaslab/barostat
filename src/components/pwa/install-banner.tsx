@@ -1,43 +1,60 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 type BeforeInstall = Event & { prompt: () => Promise<void> };
 
+function subscribeNever() {
+  return () => {};
+}
+
+function isStandalone(): boolean {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    ("standalone" in navigator &&
+      (navigator as Navigator & { standalone?: boolean }).standalone === true)
+  );
+}
+
+function isIosDevice(): boolean {
+  return (
+    /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1)
+  );
+}
+
+function wasDismissed(): boolean {
+  return sessionStorage.getItem("barostat-install-dismissed") === "1";
+}
+
 export function InstallBanner() {
   const [promptEvent, setPromptEvent] = useState<BeforeInstall | null>(null);
-  const [ios, setIos] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const standalone = useSyncExternalStore(subscribeNever, isStandalone, () => true);
+  const ios = useSyncExternalStore(subscribeNever, isIosDevice, () => false);
+  const dismissedStored = useSyncExternalStore(
+    subscribeNever,
+    wasDismissed,
+    () => true,
+  );
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const standalone =
-      window.matchMedia("(display-mode: standalone)").matches ||
-      ("standalone" in navigator &&
-        (navigator as Navigator & { standalone?: boolean }).standalone === true);
-    if (standalone) return;
-    if (sessionStorage.getItem("barostat-install-dismissed") === "1") return;
-
-    const isIos =
-      /iphone|ipad|ipod/i.test(navigator.userAgent) ||
-      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
-    setIos(isIos);
-    if (isIos) setOpen(true);
-
     function onPrompt(event: Event) {
       event.preventDefault();
       setPromptEvent(event as BeforeInstall);
-      setOpen(true);
     }
     window.addEventListener("beforeinstallprompt", onPrompt);
     return () => window.removeEventListener("beforeinstallprompt", onPrompt);
   }, []);
 
+  const open =
+    !standalone && !dismissed && !dismissedStored && (ios || promptEvent !== null);
+
   if (!open) return null;
 
   function dismiss() {
     sessionStorage.setItem("barostat-install-dismissed", "1");
-    setOpen(false);
+    setDismissed(true);
   }
 
   return (
@@ -58,9 +75,7 @@ export function InstallBanner() {
           Installa
         </button>
       ) : ios ? (
-        <p className="muted">
-          Condividi → Aggiungi a Home.
-        </p>
+        <p className="muted">Condividi → Aggiungi a Home.</p>
       ) : null}
       <button type="button" className="link" onClick={dismiss}>
         Non ora

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 
 import { TeamPanel } from "@/components/live/team-panel";
 import { SyncPill } from "@/components/sync-pill";
@@ -47,7 +47,11 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
     ready,
   } = useGameEvents(gameId, scopedPeriod);
   const sync = useGameSync(gameId, events.length);
-  const [deviceId, setDeviceId] = useState<string | null>(null);
+  const deviceId = useSyncExternalStore(
+    () => () => {},
+    getDeviceId,
+    () => "",
+  );
 
   const usName = "Noi";
   const themShort = shortName(opponent);
@@ -59,10 +63,6 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
   );
   const readOnly = foreignRecorder || sync.reason === "recorder";
   const gridOff = !ready || !gameReady || !game || readOnly;
-
-  useEffect(() => {
-    setDeviceId(getDeviceId());
-  }, []);
 
   useEffect(() => {
     if (!game || game.recorderDeviceId !== "") return;

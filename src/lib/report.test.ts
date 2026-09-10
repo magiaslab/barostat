@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 
 import { insight, periodRows, topBand } from "./report";
 import { teamStats } from "./stats";
-import type { Band, GameEvent, Outcome, Period, Team } from "./types";
+import type { Band, GameEvent, Outcome, Team } from "./types";
 
 let seq = 0;
 
