@@ -123,7 +123,7 @@ describe("store Dexie", () => {
       band: 0,
       outcome: 3,
     });
-    await markSynced([created.id]);
+    await markSynced([{ id: created.id, deletedAt: created.deletedAt }]);
     expect(await listPendingEvents("prova")).toHaveLength(0);
 
     const retracted = await undoLast("prova");
@@ -168,5 +168,34 @@ describe("store Dexie", () => {
     expect(live.map((event) => event.id)).toContain(first.id);
 
     expect(await removeLastMatching("prova", 0, "them", 0, 2)).toBeNull();
+  });
+
+  test("annullare fra listPendingEvents e markSynced lascia il tombstone in coda", async () => {
+    const created = await appendEvent({
+      gameId: "prova",
+      period: 0,
+      team: "us",
+      band: 0,
+      outcome: 3,
+    });
+
+    const pending = await listPendingEvents("prova");
+    expect(pending).toHaveLength(1);
+    expect(pending[0]?.id).toBe(created.id);
+    expect(pending[0]?.deletedAt).toBeNull();
+
+    const retracted = await undoLast("prova");
+    expect(retracted?.deletedAt).not.toBeNull();
+    expect(retracted?.syncedAt).toBeNull();
+
+    await markSynced(
+      pending.map((event) => ({ id: event.id, deletedAt: event.deletedAt })),
+    );
+
+    const stillPending = await listPendingEvents("prova");
+    expect(stillPending).toHaveLength(1);
+    expect(stillPending[0]?.id).toBe(created.id);
+    expect(stillPending[0]?.deletedAt).not.toBeNull();
+    expect(stillPending[0]?.syncedAt).toBeNull();
   });
 });

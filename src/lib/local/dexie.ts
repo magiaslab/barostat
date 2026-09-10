@@ -38,7 +38,12 @@ export function getDb(): BarostatDB {
     });
     db.version(2)
       .stores({
-        events: "id, gameId, [gameId+seq], syncedAt",
+        // IndexedDB non indicizza null: un indice su syncedAt conterrebbe
+        // solo le righe già sincronizzate, l'esatto contrario della coda.
+        // listPendingEvents filtra in JavaScript (~70 eventi a partita).
+        // Non rimettere syncedAt fra gli indici. Se un giorno servisse
+        // davvero, usare un campo separato pending: 0 | 1.
+        events: "id, gameId, [gameId+seq]",
       })
       .upgrade(async (tx) => {
         await tx
@@ -68,13 +73,17 @@ export async function listPendingEvents(gameId: string): Promise<GameEvent[]> {
   return rows.filter((event) => event.syncedAt === null);
 }
 
-export async function markSynced(ids: string[]): Promise<void> {
+export type SyncedEntry = { id: string; deletedAt: number | null };
+
+export async function markSynced(entries: SyncedEntry[]): Promise<void> {
   const store = getDb();
   const now = Date.now();
   await store.transaction("rw", store.events, async () => {
-    for (const id of ids) {
-      const event = await store.events.get(id);
-      if (!event) continue;
+    for (const entry of entries) {
+      const event = await store.events.get(entry.id);
+      // Se nel frattempo l'evento è cambiato, resta in coda: quel cambiamento
+      // non è ancora stato spedito.
+      if (!event || event.deletedAt !== entry.deletedAt) continue;
       await store.events.put({ ...event, syncedAt: now });
     }
   });
