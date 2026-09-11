@@ -6,6 +6,7 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import { TeamPanel } from "@/components/live/team-panel";
 import { SyncPill } from "@/components/sync-pill";
 import { vibrate } from "@/lib/haptics";
+import { isLiveGridReadOnly } from "@/lib/live-grid";
 import { claimRecorder } from "@/lib/local/dexie";
 import {
   ensureDeviceId,
@@ -65,8 +66,19 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
       game.recorderDeviceId &&
       game.recorderDeviceId !== deviceId,
   );
-  const readOnly = foreignRecorder || sync.reason === "recorder";
-  const gridOff = !ready || !gameReady || !game || readOnly;
+  const archived = Boolean(game && game.closedAt != null);
+  const syncRecorderConflict = sync.reason === "recorder";
+  const readOnly =
+    foreignRecorder || syncRecorderConflict || archived;
+  // In vista "Partita" le celle mostrano i totali aggregati: tap e long-press
+  // resterebbero legati al quarto selezionato e correggerebbero il conto sbagliato.
+  const gridReadOnly = isLiveGridReadOnly({
+    scope,
+    closedAt: game?.closedAt,
+    foreignRecorder,
+    syncRecorderConflict,
+  });
+  const gridOff = !ready || !gameReady || !game || gridReadOnly;
 
   useEffect(() => {
     ensureDeviceId();
@@ -103,7 +115,7 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
   }
 
   function add(team: Team, band: Band, outcome: Outcome) {
-    if (readOnly) return;
+    if (gridReadOnly) return;
     void append({ period, team, band, outcome });
   }
 
@@ -112,7 +124,7 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
     band: Band,
     outcome: Outcome,
   ): Promise<boolean> {
-    if (readOnly) return false;
+    if (gridReadOnly) return false;
     const retracted = await removeMatching({
       period,
       team,
@@ -166,7 +178,12 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
           </div>
         </header>
 
-        {readOnly ? (
+        {archived ? (
+          <p className="readonly-banner" role="status">
+            Partita archiviata — sola lettura. I canestri non si modificano
+            più da qui; usa il riepilogo per export e consultazione.
+          </p>
+        ) : readOnly ? (
           <p className="readonly-banner" role="status">
             Questa partita è in sola lettura su questo dispositivo.
           </p>

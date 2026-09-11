@@ -39,6 +39,11 @@ export function gameSlug(opponent: string): string {
   return slug || "partita";
 }
 
+/** Evita che Excel interpreti un nome squadra come formula (=CMD|…). */
+export function asExcelText(value: string): string {
+  return /^[=+\-@]/.test(value) ? `'${value}` : value;
+}
+
 export function exportFilename(game: Game, ext: "xlsx" | "pdf"): string {
   return `barostat-${gameSlug(game.opponent)}-${game.date}.${ext}`;
 }

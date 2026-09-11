@@ -19,6 +19,7 @@ Dal 2025 il referto elettronico è obbligatorio in Italia, quindi ogni palestra 
 4. La rotta è **idempotente sull'uuid**: `ON CONFLICT (id) DO NOTHING`. Un batch reinviato non duplica nulla.
 5. La conferma marca gli eventi come sincronizzati in locale.
 
+Un solo utente (sessione) registra per partita sul server; un solo device resta convenzione UX locale. Vedi docs/sync-recorder-auth.md.
 Un solo device registra per partita (vedi `00-progetto.mdc`), quindi la sync è un *append* puro: **niente merge, niente risoluzione di conflitti**.
 
 ## Dimensioni reali
@@ -44,3 +45,8 @@ Il service worker deve mettere in cache la shell dell'app e le rotte delle parti
 - Un tap che non produce un evento locale perché una chiamata di rete è fallita.
 - Uno spinner che blocca la registrazione in attesa del server.
 - La perdita di eventi al ricaricamento della pagina: Dexie va scritto in modo sincrono rispetto al tap, non in un `useEffect` differito.
+
+## Logout su tablet condiviso
+
+Prima di `signOut`: flush best-effort, conferma se resta coda, poi `clearLocalData()` (IndexedDB + device id). Vedi `docs/logout-clear.md`.
+

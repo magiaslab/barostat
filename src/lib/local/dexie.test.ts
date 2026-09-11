@@ -1,7 +1,8 @@
+import { clearDeviceId, ensureDeviceId, readDeviceId } from "@/lib/local/device";
 import "fake-indexeddb/auto";
 
 import Dexie from "dexie";
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
 import { eventRows } from "@/lib/export/rows";
 import { score } from "@/lib/stats";
@@ -11,6 +12,7 @@ import {
   appendEvent,
   claimRecorder,
   closeDb,
+  clearLocalData,
   closeGame,
   createGame,
   getDb,
@@ -28,7 +30,33 @@ import {
 const UUID_V4 =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+/** Vitest/Node non ha localStorage: serve un mock persistibile per createGame. */
+function installMemoryLocalStorage() {
+  const store = new Map<string, string>();
+  const mock = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      store.set(key, value);
+    },
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+    clear: () => {
+      store.clear();
+    },
+  };
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: mock,
+  });
+}
+
+beforeEach(() => {
+  installMemoryLocalStorage();
+});
+
 afterEach(async () => {
+  clearDeviceId();
   await closeDb();
   indexedDB.deleteDatabase("barostat-24");
   await Dexie.delete("barostat-24");
@@ -285,7 +313,7 @@ const remoteGame: Game = {
   createdAt: 10,
   closedAt: 20,
   recorderDeviceId: "altro-device",
-};
+  recorderUserId: null,};
 
 function remoteEvent(over: Partial<GameEvent> = {}): GameEvent {
   return {
@@ -346,7 +374,7 @@ describe("mergeRemoteSnapshot", () => {
           ...remoteGame,
           opponent: "Server",
           recorderDeviceId: "non-toccare",
-        },
+  recorderUserId: null,        },
       ],
       [remoteEvent({ outcome: 1 })],
       99,
@@ -386,5 +414,40 @@ describe("mergeRemoteSnapshot", () => {
 
     expect(await getGame("g-locale")).toMatchObject({ opponent: "Solo qui" });
     expect(await store.events.get("solo-locale")).toEqual(onlyLocal);
+  });
+});
+
+
+describe("archivio e limiti", () => {
+  test("appendEvent rifiuta una partita chiusa", async () => {
+    const game = await createGame({
+      opponent: "Chiusa",
+      date: "2026-09-11",
+      venue: "home",
+      competition: "league",
+    });
+    await closeGame(game.id);
+    await expect(
+      appendEvent({
+        gameId: game.id,
+        period: 0,
+        team: "us",
+        band: 0,
+        outcome: 2,
+      }),
+    ).rejects.toThrow(/archiviata/i);
+  });
+
+  test("clearLocalData svuota partite e device id", async () => {
+    await createGame({
+      opponent: "Temp",
+      date: "2026-09-11",
+      venue: "home",
+      competition: "league",
+    });
+    ensureDeviceId();
+    await clearLocalData();
+    expect(await listGames()).toEqual([]);
+    expect(readDeviceId()).toBe("");
   });
 });

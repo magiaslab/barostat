@@ -34,6 +34,15 @@ npm install
 npm run dev
 ```
 
+## Typecheck
+
+`tsc --noEmit` da solo fallisce se mancano i tipi generati da Next (es. `LayoutProps`). Generali prima, oppure usa lo script unico:
+
+```bash
+npm run typegen      # next typegen
+npm run typecheck    # next typegen && tsc --noEmit
+```
+
 ## Dove guardare prima di scrivere codice
 
 | File | Cosa contiene |

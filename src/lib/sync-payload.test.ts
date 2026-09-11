@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { parseSyncPayload, parseSyncSnapshot } from "./sync-payload";
+import { parseSyncPayload, parseSyncSnapshot, MAX_SYNC_EVENTS } from "./sync-payload";
 import type { Game, GameEvent } from "./types";
 
 const game: Game = {
@@ -12,7 +12,7 @@ const game: Game = {
   createdAt: 1,
   closedAt: null,
   recorderDeviceId: "dev-1",
-};
+  recorderUserId: null,};
 
 const event: GameEvent = {
   id: "e1",
@@ -60,5 +60,23 @@ describe("parseSyncPayload", () => {
     ).toBeNull();
     expect(parseSyncPayload({ game, events: [{ ...event, band: 9 }] })).toBeNull();
     expect(parseSyncPayload({ game: { ...game, venue: "casa" }, events: [] })).toBeNull();
+  });
+
+  test("rifiuta seq o tsClient non interi e batch troppo grandi", () => {
+    expect(
+      parseSyncPayload({ game, events: [{ ...event, seq: 1.5 }] }),
+    ).toBeNull();
+    expect(
+      parseSyncPayload({ game, events: [{ ...event, tsClient: Number.NaN }] }),
+    ).toBeNull();
+    expect(
+      parseSyncPayload({ game, events: [{ ...event, seq: 0 }] }),
+    ).toBeNull();
+    const oversized = Array.from({ length: MAX_SYNC_EVENTS + 1 }, (_, i) => ({
+      ...event,
+      id: `e${i}`,
+      seq: i + 1,
+    }));
+    expect(parseSyncPayload({ game, events: oversized })).toBeNull();
   });
 });

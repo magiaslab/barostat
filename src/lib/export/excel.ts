@@ -3,7 +3,12 @@ import type { TeamStats } from "@/lib/stats";
 import type { Game, GameEvent } from "@/lib/types";
 
 import { deliver, type DeliverResult } from "./deliver";
-import { EXCEL_HEADERS, eventRows, exportFilename } from "./rows";
+import {
+  EXCEL_HEADERS,
+  asExcelText,
+  eventRows,
+  exportFilename,
+} from "./rows";
 
 const XLSX_MIME =
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
@@ -34,7 +39,7 @@ export async function downloadExcel(
       formatFreeThrows(us.freeThrows),
     ],
     [
-      game.opponent,
+      asExcelText(game.opponent),
       them.total,
       `${them.pointsByBand[0]} (${them.percentsByBand[0]})`,
       `${them.pointsByBand[1]} (${them.percentsByBand[1]})`,

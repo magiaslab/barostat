@@ -9,6 +9,9 @@ import {
   type Venue,
 } from "@/lib/types";
 
+/** Un batch di sync è una partita (~70 eventi); oltre soglia è abuso o errore. */
+export const MAX_SYNC_EVENTS = 500;
+
 export type SyncPayload = {
   game: Game;
   events: GameEvent[];
@@ -47,11 +50,16 @@ function isFiniteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);
 }
 
+function isIntegerNumber(value: unknown): value is number {
+  return typeof value === "number" && Number.isInteger(value);
+}
+
 export function parseSyncPayload(input: unknown): SyncPayload | null {
   if (typeof input !== "object" || input === null) return null;
   const body = input as Record<string, unknown>;
   const game = parseGame(body.game);
   if (!game || !Array.isArray(body.events)) return null;
+  if (body.events.length > MAX_SYNC_EVENTS) return null;
   const events: GameEvent[] = [];
   for (const row of body.events) {
     const event = parseEvent(row, game.id);
@@ -91,6 +99,13 @@ function parseGame(input: unknown): Game | null {
   if (!isFiniteNumber(g.createdAt)) return null;
   if (g.closedAt !== null && !isFiniteNumber(g.closedAt)) return null;
   if (typeof g.recorderDeviceId !== "string" || !g.recorderDeviceId) return null;
+  // Il client può omettere recorderUserId: l'autorità di scrittura è la sessione.
+  let recorderUserId: string | null = null;
+  if (typeof g.recorderUserId === "string" && g.recorderUserId.trim()) {
+    recorderUserId = g.recorderUserId.trim().toLowerCase();
+  } else if (g.recorderUserId !== null && g.recorderUserId !== undefined) {
+    return null;
+  }
   return {
     id: g.id,
     opponent: g.opponent,
@@ -100,6 +115,7 @@ function parseGame(input: unknown): Game | null {
     createdAt: g.createdAt,
     closedAt: g.closedAt,
     recorderDeviceId: g.recorderDeviceId,
+    recorderUserId,
   };
 }
 
@@ -112,8 +128,9 @@ function parseEvent(input: unknown, expectedGameId?: string): GameEvent | null {
   const gameId = e.gameId;
   if (!isPeriod(e.period) || !isTeam(e.team) || !isBand(e.band)) return null;
   if (!isOutcome(e.outcome)) return null;
-  if (!isFiniteNumber(e.tsClient) || !isFiniteNumber(e.seq)) return null;
-  if (e.deletedAt !== null && !isFiniteNumber(e.deletedAt)) return null;
+  if (!isIntegerNumber(e.tsClient) || !isIntegerNumber(e.seq)) return null;
+  if (e.seq < 1) return null;
+  if (e.deletedAt !== null && !isIntegerNumber(e.deletedAt)) return null;
   return {
     id: e.id,
     gameId,

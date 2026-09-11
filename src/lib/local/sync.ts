@@ -13,12 +13,15 @@ import { parseSyncSnapshot } from "@/lib/sync-payload";
 export type FlushResult = {
   ok: boolean;
   pending: number;
-  reason?: "recorder" | "auth" | "network";
+  reason?: "recorder" | "auth" | "network" | "closed" | "limit";
 };
 
 let pullInflight: Promise<{ ok: boolean }> | null = null;
 let lastPullAt = 0;
 const PULL_COOLDOWN_MS = 2000;
+
+/** Un flush per gameId alla volta: le chiamate sovrapposte riusano la stessa Promise. */
+const flushInflight = new Map<string, Promise<FlushResult>>();
 
 export async function pullRemote(options?: {
   force?: boolean;
@@ -54,7 +57,7 @@ export async function pullRemote(options?: {
   return pullInflight;
 }
 
-export async function flushGame(
+async function flushGameOnce(
   gameId: string,
   options?: { pull?: boolean },
 ): Promise<FlushResult> {
@@ -86,6 +89,20 @@ export async function flushGame(
       return { ok: false, pending: pending.length, reason: "auth" };
     }
     if (response.status === 409) {
+      const body = (await response.json().catch(() => null)) as
+        | { error?: string }
+        | null;
+      const error = body?.error;
+      if (error === "closed") {
+        // Archivio già sul server: ok se non resta coda locale da spedire.
+        if (pending.length === 0) {
+          return { ok: true, pending: 0 };
+        }
+        return { ok: false, pending: pending.length, reason: "closed" };
+      }
+      if (error === "limit") {
+        return { ok: false, pending: pending.length, reason: "limit" };
+      }
       return { ok: false, pending: pending.length, reason: "recorder" };
     }
     if (!response.ok) {
@@ -104,6 +121,25 @@ export async function flushGame(
   } catch {
     return { ok: false, pending: pending.length, reason: "network" };
   }
+}
+
+export async function flushGame(
+  gameId: string,
+  options?: { pull?: boolean },
+): Promise<FlushResult> {
+  const existing = flushInflight.get(gameId);
+  if (existing) return existing;
+
+  const pending = flushGameOnce(gameId, options).finally(() => {
+    flushInflight.delete(gameId);
+  });
+  flushInflight.set(gameId, pending);
+  return pending;
+}
+
+/** Solo per i test: svuota il lock in-flight. */
+export function resetFlushLocksForTests(): void {
+  flushInflight.clear();
 }
 
 export async function flushGames(gameIds: string[]): Promise<FlushResult> {

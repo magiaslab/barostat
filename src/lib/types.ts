@@ -26,7 +26,10 @@ export type Game = {
   competition: Competition;
   createdAt: number;
   closedAt: number | null;
+  /** UX: quale tablet ha la griglia. Non è autorità di scrittura sul server. */
   recorderDeviceId: string;
+  /** Email sessione del registratore; null finché la partita non è mai stata inviata. */
+  recorderUserId: string | null;
 };
 
 export const BANDS: readonly Band[] = [0, 1, 2];

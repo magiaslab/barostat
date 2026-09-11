@@ -6,6 +6,7 @@ import { useState, type FormEvent } from "react";
 
 import { todayISO } from "@/lib/format";
 import { createGame } from "@/lib/local/dexie";
+import { MAX_WORKSPACE_GAMES } from "@/lib/limits";
 import {
   COMPETITIONS,
   COMPETITION_LABEL,
@@ -21,11 +22,21 @@ export function NewGameForm() {
   const [date, setDate] = useState(todayISO);
   const [venue, setVenue] = useState<Venue>("home");
   const [competition, setCompetition] = useState<Competition>("league");
+  const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const game = await createGame({ opponent, date, venue, competition });
-    router.push(`/games/${game.id}`);
+    setError(null);
+    try {
+      const game = await createGame({ opponent, date, venue, competition });
+      router.push(`/games/${game.id}`);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : `Limite catalogo: massimo ${MAX_WORKSPACE_GAMES} partite.`,
+      );
+    }
   }
 
   return (
@@ -96,6 +107,11 @@ export function NewGameForm() {
             categoria gioca con regolamenti diversi, la durata diventa un campo
             di questa schermata e le fasce si ricalcolano da sola.
           </p>
+          {error ? (
+            <p className="muted" role="alert">
+              {error}
+            </p>
+          ) : null}
           <div className="bar">
             <div className="bar-inner">
               <Link href="/games" className="btn">
