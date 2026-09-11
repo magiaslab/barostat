@@ -106,4 +106,14 @@ describe("claimsFromIdToken", () => {
     expect(claimsFromIdToken("not-a-jwt")).toEqual({});
     expect(claimsFromIdToken(undefined)).toEqual({});
   });
+
+  test("non verifica la firma: accetta un payload decodificabile anche senza segnatura valida", () => {
+    // Intenzionale: la funzione è solo un decoder. Auth.js ha già verificato l'id_token.
+    const payload = btoa(
+      JSON.stringify({ email: "x@y.it", email_verified: true }),
+    );
+    expect(claimsFromIdToken(`fake.${payload}.fakesig`)).toMatchObject({
+      email: "x@y.it",
+    });
+  });
 });

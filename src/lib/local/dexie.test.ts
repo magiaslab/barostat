@@ -1,8 +1,8 @@
-import { ensureDeviceId, readDeviceId } from "@/lib/local/device";
+import { clearDeviceId, ensureDeviceId, readDeviceId } from "@/lib/local/device";
 import "fake-indexeddb/auto";
 
 import Dexie from "dexie";
-import { afterEach, describe, expect, test } from "vitest";
+import { afterEach, beforeEach, describe, expect, test } from "vitest";
 
 import { eventRows } from "@/lib/export/rows";
 import { score } from "@/lib/stats";
@@ -30,7 +30,33 @@ import {
 const UUID_V4 =
   /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
+/** Vitest/Node non ha localStorage: serve un mock persistibile per createGame. */
+function installMemoryLocalStorage() {
+  const store = new Map<string, string>();
+  const mock = {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      store.set(key, value);
+    },
+    removeItem: (key: string) => {
+      store.delete(key);
+    },
+    clear: () => {
+      store.clear();
+    },
+  };
+  Object.defineProperty(globalThis, "localStorage", {
+    configurable: true,
+    value: mock,
+  });
+}
+
+beforeEach(() => {
+  installMemoryLocalStorage();
+});
+
 afterEach(async () => {
+  clearDeviceId();
   await closeDb();
   indexedDB.deleteDatabase("barostat-24");
   await Dexie.delete("barostat-24");

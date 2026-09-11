@@ -29,12 +29,21 @@ function hostedDomain(profile: Record<string, unknown>): string {
   return typeof profile.hd === "string" ? profile.hd.trim().toLowerCase() : "";
 }
 
-/** Payload dell'id_token Google già verificato da Auth.js: email, email_verified, hd. */
+/**
+ * Decodifica il *payload* di un id_token Google **già verificato da Auth.js**.
+ *
+ * NON è un verificatore JWT: non controlla firma, `aud`, `iss` né scadenza.
+ * Usare solo dopo `signIn`/`account.id_token` di Auth.js. Non riusare come
+ * gate di sicurezza su token provenienti dal client o da altre fonti.
+ */
 export function claimsFromIdToken(
   idToken: string | undefined,
 ): Record<string, unknown> {
   if (!idToken) return {};
-  const payload = idToken.split(".")[1];
+  // Tre segmenti tipici di un JWT; senza verifica della firma restano bytes opachi.
+  const parts = idToken.split(".");
+  if (parts.length < 2) return {};
+  const payload = parts[1];
   if (!payload) return {};
   try {
     const padded = payload.replace(/-/g, "+").replace(/_/g, "/");

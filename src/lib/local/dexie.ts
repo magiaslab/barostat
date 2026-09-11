@@ -1,6 +1,10 @@
 import Dexie, { type EntityTable } from "dexie";
 
-import { clearDeviceId, ensureDeviceId } from "@/lib/local/device";
+import {
+  clearDeviceId,
+  ensureDeviceId,
+  isPersistableDeviceId,
+} from "@/lib/local/device";
 import { MAX_WORKSPACE_GAMES } from "@/lib/limits";
 import type {
   Band,
@@ -134,7 +138,13 @@ export async function createGame(draft: GameDraft): Promise<Game> {
     competition: draft.competition,
     createdAt: Date.now(),
     closedAt: null,
-    recorderDeviceId: ensureDeviceId(),
+    recorderDeviceId: (() => {
+      const id = ensureDeviceId();
+      if (!isPersistableDeviceId(id)) {
+        throw new Error("createGame richiede un browser con localStorage");
+      }
+      return id;
+    })(),
     recorderUserId: null,
   };
   await getDb().games.add(game);
@@ -163,6 +173,9 @@ export async function claimRecorder(
   const game = await store.games.get(id);
   if (!game) return undefined;
   if (game.recorderDeviceId === "") {
+    if (!isPersistableDeviceId(deviceId)) {
+      throw new Error("claimRecorder richiede un device id persistibile");
+    }
     const claimed = { ...game, recorderDeviceId: deviceId };
     await store.games.put(claimed);
     return claimed;

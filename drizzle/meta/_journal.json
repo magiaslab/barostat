@@ -15,6 +15,13 @@
       "when": 1789100000000,
       "tag": "0001_recorder_user",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789200000000,
+      "tag": "0002_events_game_id_idx",
+      "breakpoints": true
     }
   ]
 }

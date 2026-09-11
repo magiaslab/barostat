@@ -20,6 +20,9 @@ let pullInflight: Promise<{ ok: boolean }> | null = null;
 let lastPullAt = 0;
 const PULL_COOLDOWN_MS = 2000;
 
+/** Un flush per gameId alla volta: le chiamate sovrapposte riusano la stessa Promise. */
+const flushInflight = new Map<string, Promise<FlushResult>>();
+
 export async function pullRemote(options?: {
   force?: boolean;
 }): Promise<{ ok: boolean }> {
@@ -54,7 +57,7 @@ export async function pullRemote(options?: {
   return pullInflight;
 }
 
-export async function flushGame(
+async function flushGameOnce(
   gameId: string,
   options?: { pull?: boolean },
 ): Promise<FlushResult> {
@@ -118,6 +121,25 @@ export async function flushGame(
   } catch {
     return { ok: false, pending: pending.length, reason: "network" };
   }
+}
+
+export async function flushGame(
+  gameId: string,
+  options?: { pull?: boolean },
+): Promise<FlushResult> {
+  const existing = flushInflight.get(gameId);
+  if (existing) return existing;
+
+  const pending = flushGameOnce(gameId, options).finally(() => {
+    flushInflight.delete(gameId);
+  });
+  flushInflight.set(gameId, pending);
+  return pending;
+}
+
+/** Solo per i test: svuota il lock in-flight. */
+export function resetFlushLocksForTests(): void {
+  flushInflight.clear();
 }
 
 export async function flushGames(gameIds: string[]): Promise<FlushResult> {

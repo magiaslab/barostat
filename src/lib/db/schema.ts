@@ -1,4 +1,11 @@
-import { bigint, integer, pgTable, smallint, text } from "drizzle-orm/pg-core";
+import {
+  bigint,
+  index,
+  integer,
+  pgTable,
+  smallint,
+  text,
+} from "drizzle-orm/pg-core";
 
 export const games = pgTable("games", {
   id: text("id").primaryKey(),
@@ -14,16 +21,20 @@ export const games = pgTable("games", {
   recorderUserId: text("recorder_user_id"),
 });
 
-export const events = pgTable("events", {
-  id: text("id").primaryKey(),
-  gameId: text("game_id")
-    .notNull()
-    .references(() => games.id),
-  period: smallint("period").notNull(),
-  team: text("team").notNull(),
-  band: smallint("band").notNull(),
-  outcome: smallint("outcome").notNull(),
-  tsClient: bigint("ts_client", { mode: "number" }).notNull(),
-  seq: integer("seq").notNull(),
-  deletedAt: bigint("deleted_at", { mode: "number" }),
-});
+export const events = pgTable(
+  "events",
+  {
+    id: text("id").primaryKey(),
+    gameId: text("game_id")
+      .notNull()
+      .references(() => games.id),
+    period: smallint("period").notNull(),
+    team: text("team").notNull(),
+    band: smallint("band").notNull(),
+    outcome: smallint("outcome").notNull(),
+    tsClient: bigint("ts_client", { mode: "number" }).notNull(),
+    seq: integer("seq").notNull(),
+    deletedAt: bigint("deleted_at", { mode: "number" }),
+  },
+  (table) => [index("events_game_id_idx").on(table.gameId)],
+);
