@@ -99,6 +99,13 @@ function parseGame(input: unknown): Game | null {
   if (!isFiniteNumber(g.createdAt)) return null;
   if (g.closedAt !== null && !isFiniteNumber(g.closedAt)) return null;
   if (typeof g.recorderDeviceId !== "string" || !g.recorderDeviceId) return null;
+  // Il client può omettere recorderUserId: l'autorità di scrittura è la sessione.
+  let recorderUserId: string | null = null;
+  if (typeof g.recorderUserId === "string" && g.recorderUserId.trim()) {
+    recorderUserId = g.recorderUserId.trim().toLowerCase();
+  } else if (g.recorderUserId !== null && g.recorderUserId !== undefined) {
+    return null;
+  }
   return {
     id: g.id,
     opponent: g.opponent,
@@ -108,6 +115,7 @@ function parseGame(input: unknown): Game | null {
     createdAt: g.createdAt,
     closedAt: g.closedAt,
     recorderDeviceId: g.recorderDeviceId,
+    recorderUserId,
   };
 }
 

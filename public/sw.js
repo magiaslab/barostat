@@ -1,5 +1,5 @@
-const SHELL = "barostat-shell-v3";
-const SHELL_URLS = [
+const SHELL = "barostat-shell-v4";
+const ASSET_URLS = [
   "/manifest.webmanifest",
   "/icon.svg",
   "/icon-192.png",
@@ -7,25 +7,47 @@ const SHELL_URLS = [
   "/apple-touch-icon.png",
 ];
 
+/** Precache di una shell navigabile (HTML di /games) se la sessione è valida. */
+async function cacheGamesShell(cache) {
+  try {
+    const response = await fetch("/games", {
+      credentials: "same-origin",
+      redirect: "follow",
+    });
+    // Un redirect al login ha redirected === true: non va salvato come /games.
+    if (response.ok && !response.redirected && response.type === "basic") {
+      await cache.put("/games", response);
+    }
+  } catch {
+    // Offline o rete assente in install/activate: ci penserà la prima visita online.
+  }
+}
+
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(SHELL).then(async (cache) => {
+    (async () => {
+      const cache = await caches.open(SHELL);
       await Promise.all(
-        SHELL_URLS.map((url) => cache.add(url).catch(() => undefined)),
+        ASSET_URLS.map((url) => cache.add(url).catch(() => undefined)),
       );
+      await cacheGamesShell(cache);
       await self.skipWaiting();
-    }),
+    })(),
   );
 });
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches
-      .keys()
-      .then((keys) =>
-        Promise.all(keys.filter((key) => key !== SHELL).map((key) => caches.delete(key))),
-      )
-      .then(() => self.clients.claim()),
+    (async () => {
+      const keys = await caches.keys();
+      await Promise.all(
+        keys.filter((key) => key !== SHELL).map((key) => caches.delete(key)),
+      );
+      // Secondo tentativo: dopo il login la cookie di sessione è disponibile.
+      const cache = await caches.open(SHELL);
+      await cacheGamesShell(cache);
+      await self.clients.claim();
+    })(),
   );
 });
 
@@ -39,8 +61,7 @@ self.addEventListener("fetch", (event) => {
   event.respondWith(
     fetch(request)
       .then((response) => {
-        // Anche le navigazioni: ma solo pagine vere. Un redirect al login ha
-        // redirected === true e resta fuori, così non finisce sotto /games.
+        // Anche le navigazioni: solo pagine vere (niente redirect al login).
         if (response.ok && !response.redirected && response.type === "basic") {
           const copy = response.clone();
           void caches.open(SHELL).then((cache) => cache.put(request, copy));

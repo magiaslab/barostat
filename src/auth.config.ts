@@ -53,6 +53,25 @@ export const authConfig = {
       }
       return allowed;
     },
+    async jwt({ token, user, profile }) {
+      const email =
+        (typeof profile?.email === "string" && profile.email) ||
+        (typeof user?.email === "string" && user.email) ||
+        (typeof token.email === "string" && token.email) ||
+        null;
+      if (email) {
+        token.email = email.toLowerCase();
+        token.sub = email.toLowerCase();
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user && typeof token.email === "string") {
+        session.user.email = token.email;
+        session.user.id = token.email;
+      }
+      return session;
+    },
     authorized({ auth: session, request }) {
       const path = request.nextUrl.pathname;
       if (

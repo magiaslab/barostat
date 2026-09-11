@@ -12,7 +12,7 @@ const game: Game = {
   createdAt: 1,
   closedAt: null,
   recorderDeviceId: "dev-1",
-};
+  recorderUserId: null,};
 
 const event: GameEvent = {
   id: "e1",

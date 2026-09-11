@@ -16,11 +16,12 @@ function emailOf(profile: Record<string, unknown>): string {
   return typeof profile.email === "string" ? profile.email.trim().toLowerCase() : "";
 }
 
-function isExplicitlyUnverified(profile: Record<string, unknown>): boolean {
+/** Richiede un segnale positivo di verifica (true / "true"), non solo l'assenza di false. */
+function isVerifiedEmail(profile: Record<string, unknown>): boolean {
   return (
-    profile.email_verified === false ||
-    profile.email_verified === "false" ||
-    profile.emailVerified === false
+    profile.email_verified === true ||
+    profile.email_verified === "true" ||
+    profile.emailVerified === true
   );
 }
 
@@ -47,6 +48,14 @@ export function claimsFromIdToken(
   }
 }
 
+/**
+ * Policy unica (codice = docs):
+ * email verificata E (claim `hd` del dominio Workspace OPPURE email @dominio).
+ *
+ * Google/Auth.js a volte omettono `hd` anche per account Workspace: l'email del
+ * dominio resta un segnale valido. `hd` senza email del dominio resta accettato
+ * se verified (profili incompleti ma con hosted domain).
+ */
 export function isAllowedGoogleProfile(
   profile: unknown,
   domain: string | undefined = readWorkspaceDomain(),
@@ -55,8 +64,8 @@ export function isAllowedGoogleProfile(
   if (!expected) return false;
   if (typeof profile !== "object" || profile === null) return false;
   const rec = profile as Record<string, unknown>;
-  if (isExplicitlyUnverified(rec)) return false;
+  if (!isVerifiedEmail(rec)) return false;
   const email = emailOf(rec);
-  if (email.endsWith(`@${expected}`)) return true;
-  return hostedDomain(rec) === expected;
+  const hd = hostedDomain(rec);
+  return email.endsWith(`@${expected}`) || hd === expected;
 }

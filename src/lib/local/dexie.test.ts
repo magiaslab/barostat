@@ -285,7 +285,7 @@ const remoteGame: Game = {
   createdAt: 10,
   closedAt: 20,
   recorderDeviceId: "altro-device",
-};
+  recorderUserId: null,};
 
 function remoteEvent(over: Partial<GameEvent> = {}): GameEvent {
   return {
@@ -346,7 +346,7 @@ describe("mergeRemoteSnapshot", () => {
           ...remoteGame,
           opponent: "Server",
           recorderDeviceId: "non-toccare",
-        },
+  recorderUserId: null,        },
       ],
       [remoteEvent({ outcome: 1 })],
       99,

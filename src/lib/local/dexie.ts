@@ -88,6 +88,19 @@ export function getDb(): BarostatDB {
             if (!game.recorderDeviceId) game.recorderDeviceId = "";
           });
       });
+    db.version(5)
+      .stores({
+        events: "id, gameId, [gameId+seq]",
+        games: "id, date, createdAt",
+      })
+      .upgrade(async (tx) => {
+        await tx
+          .table("games")
+          .toCollection()
+          .modify((game: { recorderUserId?: string | null }) => {
+            if (game.recorderUserId === undefined) game.recorderUserId = null;
+          });
+      });
   }
   return db;
 }
@@ -108,6 +121,7 @@ export async function createGame(draft: GameDraft): Promise<Game> {
     createdAt: Date.now(),
     closedAt: null,
     recorderDeviceId: ensureDeviceId(),
+    recorderUserId: null,
   };
   await getDb().games.add(game);
   return game;

@@ -29,12 +29,17 @@ Il parametro `hd` nella richiesta **è solo un suggerimento per la schermata di 
 
 ```ts
 async signIn({ profile }) {
-  return profile?.email_verified === true
-      && profile?.hd === process.env.GOOGLE_WORKSPACE_DOMAIN
+  const domain = process.env.GOOGLE_WORKSPACE_DOMAIN
+  const verified = profile?.email_verified === true
+  const emailOk = profile?.email?.endsWith(`@${domain}`)
+  const hdOk = profile?.hd === domain
+  return verified && (emailOk || hdOk)
 }
 ```
 
-Entrambe le condizioni servono: `hd` senza `email_verified` è aggirabile.
+Serve **email verificata** e almeno uno tra: claim `hd` del Workspace **oppure** email `@dominio`.
+Google/Auth.js a volte omettono `hd` anche per account Workspace: l'email del dominio resta valida.
+`hd` senza `email_verified` resta aggirabile e va rifiutato.
 
 ## Configurazione della console Google
 

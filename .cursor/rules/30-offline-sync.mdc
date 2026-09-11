@@ -19,6 +19,7 @@ Dal 2025 il referto elettronico è obbligatorio in Italia, quindi ogni palestra 
 4. La rotta è **idempotente sull'uuid**: `ON CONFLICT (id) DO NOTHING`. Un batch reinviato non duplica nulla.
 5. La conferma marca gli eventi come sincronizzati in locale.
 
+Un solo utente (sessione) registra per partita sul server; un solo device resta convenzione UX locale. Vedi docs/sync-recorder-auth.md.
 Un solo device registra per partita (vedi `00-progetto.mdc`), quindi la sync è un *append* puro: **niente merge, niente risoluzione di conflitti**.
 
 ## Dimensioni reali
