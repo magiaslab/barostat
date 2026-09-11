@@ -90,7 +90,9 @@ export async function POST(request: Request) {
         date: payload.game.date,
         venue: payload.game.venue,
         competition: payload.game.competition,
-        closedAt: payload.game.closedAt,
+        // Una volta chiusa, non si riapre: coalesce tiene il timestamp già
+        // presente se il client reinviasse closedAt null.
+        closedAt: sql`coalesce(${games.closedAt}, excluded.closed_at)`,
       },
     });
 

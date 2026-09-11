@@ -70,7 +70,9 @@ export function ReportScreen({ gameId }: ReportScreenProps) {
     if (closing || !game || game.closedAt !== null) return;
     setClosing(true);
     await closeGame(game.id);
-    void flushGame(game.id);
+    // La chiusura deve partire prima della navigazione: altrimenti closedAt
+    // resta solo sul tablet se la rete è lenta o il componente si smonta.
+    await flushGame(game.id);
     setToast("Partita archiviata");
     window.setTimeout(() => {
       router.push("/games");

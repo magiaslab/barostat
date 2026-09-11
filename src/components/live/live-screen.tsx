@@ -66,7 +66,10 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
       game.recorderDeviceId !== deviceId,
   );
   const readOnly = foreignRecorder || sync.reason === "recorder";
-  const gridOff = !ready || !gameReady || !game || readOnly;
+  // In vista "Partita" le celle mostrano i totali aggregati: tap e long-press
+  // resterebbero legati al quarto selezionato e correggerebbero il conto sbagliato.
+  const gridOff =
+    !ready || !gameReady || !game || readOnly || scope === "game";
 
   useEffect(() => {
     ensureDeviceId();
@@ -103,7 +106,7 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
   }
 
   function add(team: Team, band: Band, outcome: Outcome) {
-    if (readOnly) return;
+    if (readOnly || scope === "game") return;
     void append({ period, team, band, outcome });
   }
 
@@ -112,7 +115,7 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
     band: Band,
     outcome: Outcome,
   ): Promise<boolean> {
-    if (readOnly) return false;
+    if (readOnly || scope === "game") return false;
     const retracted = await removeMatching({
       period,
       team,

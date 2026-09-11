@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 
-import { excelPreview, eventRows, exportFilename, gameSlug } from "./rows";
+import { asExcelText, excelPreview, eventRows, exportFilename, gameSlug } from "./rows";
 import type { Game, GameEvent } from "@/lib/types";
 
 const game: Game = {
@@ -48,6 +48,16 @@ describe("eventRows", () => {
       true,
     );
     expect(preview.endsWith("… 2 righe successive")).toBe(true);
+  });
+});
+
+describe("asExcelText", () => {
+  test("prefissa i valori che Excel tratterebbe come formula", () => {
+    expect(asExcelText("Cernusco")).toBe("Cernusco");
+    expect(asExcelText("=CMD|'/c calc'!A0")).toBe("'=CMD|'/c calc'!A0");
+    expect(asExcelText("+1")).toBe("'+1");
+    expect(asExcelText("-Hack")).toBe("'-Hack");
+    expect(asExcelText("@nome")).toBe("'@nome");
   });
 });
 
