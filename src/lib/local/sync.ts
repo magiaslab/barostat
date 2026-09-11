@@ -13,7 +13,7 @@ import { parseSyncSnapshot } from "@/lib/sync-payload";
 export type FlushResult = {
   ok: boolean;
   pending: number;
-  reason?: "recorder" | "auth" | "network";
+  reason?: "recorder" | "auth" | "network" | "closed" | "limit";
 };
 
 let pullInflight: Promise<{ ok: boolean }> | null = null;
@@ -86,6 +86,20 @@ export async function flushGame(
       return { ok: false, pending: pending.length, reason: "auth" };
     }
     if (response.status === 409) {
+      const body = (await response.json().catch(() => null)) as
+        | { error?: string }
+        | null;
+      const error = body?.error;
+      if (error === "closed") {
+        // Archivio già sul server: ok se non resta coda locale da spedire.
+        if (pending.length === 0) {
+          return { ok: true, pending: 0 };
+        }
+        return { ok: false, pending: pending.length, reason: "closed" };
+      }
+      if (error === "limit") {
+        return { ok: false, pending: pending.length, reason: "limit" };
+      }
       return { ok: false, pending: pending.length, reason: "recorder" };
     }
     if (!response.ok) {

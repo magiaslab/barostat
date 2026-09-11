@@ -1,3 +1,4 @@
+import { ensureDeviceId, readDeviceId } from "@/lib/local/device";
 import "fake-indexeddb/auto";
 
 import Dexie from "dexie";
@@ -11,6 +12,7 @@ import {
   appendEvent,
   claimRecorder,
   closeDb,
+  clearLocalData,
   closeGame,
   createGame,
   getDb,
@@ -386,5 +388,40 @@ describe("mergeRemoteSnapshot", () => {
 
     expect(await getGame("g-locale")).toMatchObject({ opponent: "Solo qui" });
     expect(await store.events.get("solo-locale")).toEqual(onlyLocal);
+  });
+});
+
+
+describe("archivio e limiti", () => {
+  test("appendEvent rifiuta una partita chiusa", async () => {
+    const game = await createGame({
+      opponent: "Chiusa",
+      date: "2026-09-11",
+      venue: "home",
+      competition: "league",
+    });
+    await closeGame(game.id);
+    await expect(
+      appendEvent({
+        gameId: game.id,
+        period: 0,
+        team: "us",
+        band: 0,
+        outcome: 2,
+      }),
+    ).rejects.toThrow(/archiviata/i);
+  });
+
+  test("clearLocalData svuota partite e device id", async () => {
+    await createGame({
+      opponent: "Temp",
+      date: "2026-09-11",
+      venue: "home",
+      competition: "league",
+    });
+    ensureDeviceId();
+    await clearLocalData();
+    expect(await listGames()).toEqual([]);
+    expect(readDeviceId()).toBe("");
   });
 });

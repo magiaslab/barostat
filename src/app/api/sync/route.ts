@@ -1,10 +1,12 @@
-import { eq, sql } from "drizzle-orm";
+import { count, eq, sql } from "drizzle-orm";
 
 import { auth } from "@/auth";
-import { getDb } from "@/lib/db";
+import { getDb, withTransaction } from "@/lib/db";
 import { events, games } from "@/lib/db/schema";
-import { canWriteAsRecorder, recorderIdFromEmail } from "@/lib/sync-auth";
+import { MAX_WORKSPACE_GAMES } from "@/lib/limits";
+import { recorderIdFromEmail } from "@/lib/sync-auth";
 import { parseSyncPayload } from "@/lib/sync-payload";
+import { decideSyncWrite } from "@/lib/sync-write";
 
 export const dynamic = "force-dynamic";
 
@@ -70,68 +72,130 @@ export async function POST(request: Request) {
     return Response.json({ error: "invalid" }, { status: 400 });
   }
 
-  const db = getDb();
-  const existing = (
-    await db.select().from(games).where(eq(games.id, payload.game.id)).limit(1)
+  // Anteprima fuori transazione (risposta 409 veloce); il check serio è sotto.
+  const previewDb = getDb();
+  const preview = (
+    await previewDb
+      .select()
+      .from(games)
+      .where(eq(games.id, payload.game.id))
+      .limit(1)
   )[0];
-
-  // Un solo registratore per partita, legato alla sessione — non al device id
-  // (che chiunque autenticato può copiare dal GET).
-  if (existing && !canWriteAsRecorder(existing.recorderUserId, sessionUserId)) {
-    return Response.json({ error: "recorder" }, { status: 409 });
+  const previewCount = preview
+    ? 0
+    : Number(
+        (
+          await previewDb.select({ value: count() }).from(games)
+        )[0]?.value ?? 0,
+      );
+  const previewDecision = decideSyncWrite({
+    existing: preview
+      ? {
+          recorderUserId: preview.recorderUserId ?? null,
+          closedAt: preview.closedAt ?? null,
+        }
+      : undefined,
+    sessionUserId,
+    gameCount: previewCount,
+    maxGames: MAX_WORKSPACE_GAMES,
+  });
+  if (!previewDecision.ok) {
+    return Response.json(
+      { error: previewDecision.error },
+      { status: 409 },
+    );
   }
 
-  await db
-    .insert(games)
-    .values({
-      id: payload.game.id,
-      opponent: payload.game.opponent,
-      date: payload.game.date,
-      venue: payload.game.venue,
-      competition: payload.game.competition,
-      createdAt: payload.game.createdAt,
-      closedAt: payload.game.closedAt,
-      recorderDeviceId: payload.game.recorderDeviceId,
-      recorderUserId: sessionUserId,
-    })
-    .onConflictDoUpdate({
-      target: games.id,
-      set: {
-        opponent: payload.game.opponent,
-        date: payload.game.date,
-        venue: payload.game.venue,
-        competition: payload.game.competition,
-        // Una volta chiusa, non si riapre.
-        closedAt: sql`coalesce(${games.closedAt}, excluded.closed_at)`,
-        // UX: aggiorna il tablet del registratore (solo lui arriva qui).
-        recorderDeviceId: payload.game.recorderDeviceId,
-        // Reclama le righe legacy (NULL) senza permettere di rubare un owner.
-        recorderUserId: sql`coalesce(${games.recorderUserId}, excluded.recorder_user_id)`,
-      },
-    });
+  try {
+    await withTransaction(async (tx) => {
+      const existing = (
+        await tx
+          .select()
+          .from(games)
+          .where(eq(games.id, payload.game.id))
+          .limit(1)
+      )[0];
 
-  if (payload.events.length > 0) {
-    await db
-      .insert(events)
-      .values(
-        payload.events.map((event) => ({
-          id: event.id,
-          gameId: event.gameId,
-          period: event.period,
-          team: event.team,
-          band: event.band,
-          outcome: event.outcome,
-          tsClient: event.tsClient,
-          seq: event.seq,
-          deletedAt: event.deletedAt,
-        })),
-      )
-      .onConflictDoUpdate({
-        target: events.id,
-        set: {
-          deletedAt: sql`coalesce(${events.deletedAt}, excluded.deleted_at)`,
-        },
+      const gameCount = existing
+        ? 0
+        : Number((await tx.select({ value: count() }).from(games))[0]?.value ?? 0);
+
+      const decision = decideSyncWrite({
+        existing: existing
+          ? {
+              recorderUserId: existing.recorderUserId ?? null,
+              closedAt: existing.closedAt ?? null,
+            }
+          : undefined,
+        sessionUserId,
+        gameCount,
+        maxGames: MAX_WORKSPACE_GAMES,
       });
+      if (!decision.ok) {
+        throw Object.assign(new Error(decision.error), {
+          code: decision.error,
+        });
+      }
+
+      await tx
+        .insert(games)
+        .values({
+          id: payload.game.id,
+          opponent: payload.game.opponent,
+          date: payload.game.date,
+          venue: payload.game.venue,
+          competition: payload.game.competition,
+          createdAt: payload.game.createdAt,
+          closedAt: payload.game.closedAt,
+          recorderDeviceId: payload.game.recorderDeviceId,
+          recorderUserId: sessionUserId,
+        })
+        .onConflictDoUpdate({
+          target: games.id,
+          set: {
+            opponent: payload.game.opponent,
+            date: payload.game.date,
+            venue: payload.game.venue,
+            competition: payload.game.competition,
+            closedAt: sql`coalesce(${games.closedAt}, excluded.closed_at)`,
+            recorderDeviceId: payload.game.recorderDeviceId,
+            recorderUserId: sql`coalesce(${games.recorderUserId}, excluded.recorder_user_id)`,
+          },
+        });
+
+      if (payload.events.length > 0) {
+        await tx
+          .insert(events)
+          .values(
+            payload.events.map((event) => ({
+              id: event.id,
+              gameId: event.gameId,
+              period: event.period,
+              team: event.team,
+              band: event.band,
+              outcome: event.outcome,
+              tsClient: event.tsClient,
+              seq: event.seq,
+              deletedAt: event.deletedAt,
+            })),
+          )
+          .onConflictDoUpdate({
+            target: events.id,
+            set: {
+              deletedAt: sql`coalesce(${events.deletedAt}, excluded.deleted_at)`,
+            },
+          });
+      }
+    });
+  } catch (error) {
+    const code =
+      error && typeof error === "object" && "code" in error
+        ? String((error as { code: unknown }).code)
+        : null;
+    if (code === "closed" || code === "recorder" || code === "limit") {
+      return Response.json({ error: code }, { status: 409 });
+    }
+    throw error;
   }
 
   return Response.json({

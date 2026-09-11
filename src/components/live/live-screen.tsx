@@ -65,7 +65,9 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
       game.recorderDeviceId &&
       game.recorderDeviceId !== deviceId,
   );
-  const readOnly = foreignRecorder || sync.reason === "recorder";
+  const archived = Boolean(game && game.closedAt != null);
+  const readOnly =
+    foreignRecorder || sync.reason === "recorder" || archived;
   // In vista "Partita" le celle mostrano i totali aggregati: tap e long-press
   // resterebbero legati al quarto selezionato e correggerebbero il conto sbagliato.
   const gridOff =
@@ -169,7 +171,12 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
           </div>
         </header>
 
-        {readOnly ? (
+        {archived ? (
+          <p className="readonly-banner" role="status">
+            Partita archiviata — sola lettura. I canestri non si modificano
+            più da qui; usa il riepilogo per export e consultazione.
+          </p>
+        ) : readOnly ? (
           <p className="readonly-banner" role="status">
             Questa partita è in sola lettura su questo dispositivo.
           </p>

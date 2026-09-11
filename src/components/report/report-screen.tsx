@@ -134,7 +134,7 @@ export function ReportScreen({ gameId }: ReportScreenProps) {
       <div className="bar">
         <div className="bar-inner">
           <Link href={`/games/${game.id}`} className="btn">
-            Continua
+            {closed ? "Vedi live (sola lettura)" : "Continua"}
           </Link>
           {closed ? (
             <Link href="/games" className="btn primary">

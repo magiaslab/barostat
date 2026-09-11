@@ -1,6 +1,7 @@
 import Dexie, { type EntityTable } from "dexie";
 
-import { ensureDeviceId } from "@/lib/local/device";
+import { clearDeviceId, ensureDeviceId } from "@/lib/local/device";
+import { MAX_WORKSPACE_GAMES } from "@/lib/limits";
 import type {
   Band,
   Competition,
@@ -111,7 +112,20 @@ export async function closeDb(): Promise<void> {
   db = undefined;
 }
 
+/** Svuota IndexedDB e l'id dispositivo (logout su tablet condiviso). */
+export async function clearLocalData(): Promise<void> {
+  await closeDb();
+  await Dexie.delete("barostat-24");
+  clearDeviceId();
+}
+
 export async function createGame(draft: GameDraft): Promise<Game> {
+  const existing = await listGames();
+  if (existing.length >= MAX_WORKSPACE_GAMES) {
+    throw new Error(
+      `Limite catalogo: massimo ${MAX_WORKSPACE_GAMES} partite su questo Workspace.`,
+    );
+  }
   const game: Game = {
     id: newId(),
     opponent: draft.opponent.trim() || "Avversari",
@@ -230,6 +244,10 @@ export async function markSynced(entries: SyncedEntry[]): Promise<void> {
 
 export async function appendEvent(draft: EventDraft): Promise<GameEvent> {
   const store = getDb();
+  const game = await store.games.get(draft.gameId);
+  if (game?.closedAt != null) {
+    throw new Error("Partita archiviata: registrazione non consentita.");
+  }
   const now = Date.now();
   const id = newId();
 
@@ -256,6 +274,8 @@ function asTombstone(event: GameEvent): GameEvent {
 
 export async function undoLast(gameId: string): Promise<GameEvent | null> {
   const store = getDb();
+  const game = await store.games.get(gameId);
+  if (game?.closedAt != null) return null;
 
   return store.transaction("rw", store.events, async () => {
     const live = (await store.events.where("gameId").equals(gameId).sortBy("seq")).filter(
@@ -277,6 +297,8 @@ export async function removeLastMatching(
   outcome: Outcome,
 ): Promise<GameEvent | null> {
   const store = getDb();
+  const game = await store.games.get(gameId);
+  if (game?.closedAt != null) return null;
 
   return store.transaction("rw", store.events, async () => {
     const live = (await store.events.where("gameId").equals(gameId).sortBy("seq")).filter(

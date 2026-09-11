@@ -30,3 +30,10 @@ export function ensureDeviceId(): string {
   emit();
   return id;
 }
+
+export function clearDeviceId(): void {
+  if (typeof localStorage === "undefined") return;
+  localStorage.removeItem(KEY);
+  emit();
+}
+
