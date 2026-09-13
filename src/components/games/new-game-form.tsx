@@ -24,11 +24,15 @@ export function NewGameForm() {
   const [competition, setCompetition] = useState<Competition>("league");
   const [error, setError] = useState<string | null>(null);
 
-  async function onSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
+  async function startGame() {
     setError(null);
     try {
-      const game = await createGame({ opponent, date, venue, competition });
+      const game = await createGame({
+        opponent,
+        date: date || todayISO(),
+        venue,
+        competition,
+      });
       router.push(`/games/${game.id}`);
     } catch (err) {
       setError(
@@ -37,6 +41,11 @@ export function NewGameForm() {
           : `Limite catalogo: massimo ${MAX_WORKSPACE_GAMES} partite.`,
       );
     }
+  }
+
+  async function onSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await startGame();
   }
 
   return (
@@ -49,7 +58,11 @@ export function NewGameForm() {
         </div>
         <h1 className="t">Nuova partita</h1>
 
-        <form className="form" onSubmit={(event) => void onSubmit(event)}>
+        <form
+          className="form"
+          noValidate
+          onSubmit={(event) => void onSubmit(event)}
+        >
           <div className="field">
             <label htmlFor="fOpp">Avversario</label>
             <input
@@ -117,8 +130,12 @@ export function NewGameForm() {
               <Link href="/games" className="btn">
                 Annulla
               </Link>
-              <button type="submit" className="btn primary">
-                Palla a due
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => void startGame()}
+              >
+                <span>Palla a due</span>
               </button>
             </div>
           </div>

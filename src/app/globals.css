@@ -1128,6 +1128,23 @@ h2.t {
   border-color: var(--ink);
 }
 
+/*
+  Huawei Browser (MatePad): un <button display:flex> ignora il tap sul testo.
+  Annulla è un <a> e funziona; Palla a due no. Grid + span lasciano il tap
+  al bottone. appearance:none toglie il submit nativo che a volte lo ingoia.
+*/
+.setup-screen button.btn {
+  appearance: none;
+  -webkit-appearance: none;
+  display: grid;
+  place-items: center;
+  touch-action: manipulation;
+}
+
+.setup-screen button.btn > * {
+  pointer-events: none;
+}
+
 .games-screen .btn.wide {
   width: 100%;
 }
