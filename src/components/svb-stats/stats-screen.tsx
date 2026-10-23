@@ -7,8 +7,8 @@ import { getGame } from "@/lib/local/dexie";
 
 /**
  * Pagina aggiunta per il 2° assistente: falli, minuti e percentuali della partita in corso.
- * I dati arrivano da SVB Stats (il tablet di chi registra le statistiche), dal riepilogo pubblico
- * del link di stagione: in sola lettura, già in cache, senza toccare il database dei 24″.
+ * I dati arrivano da SVB Stats (il tablet di chi registra le statistiche), letti dal server di BaroStat
+ * (/api/svb-stats) con il link di stagione: in sola lettura, senza toccare il database dei 24″.
  */
 
 type LivePlayer = { number: number | null; name: string; onCourt: boolean; pf: number; sec: number; pts: number; fgm: number; fga: number; ftm: number; fta: number; tov: number };
@@ -18,7 +18,7 @@ type LiveTeam = {
 };
 type LiveSummary = { title: string; home: boolean; period: number; clock: number; closed: boolean; svb: LiveTeam; opp: LiveTeam };
 
-const SOURCE = process.env.NEXT_PUBLIC_SVB_STATS_LIVE_URL;
+const SOURCE = "/api/svb-stats";
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 const clock = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 const pct = (m: number, a: number) => (a ? Math.round((m / a) * 100) : null);
@@ -31,7 +31,6 @@ export function StatsScreen({ gameId }: { gameId: string }) {
   const [tab, setTab] = useState<"us" | "team" | "them">("us");
 
   useEffect(() => {
-    if (!SOURCE) return;
     let stop = false;
     let timer: ReturnType<typeof setTimeout>;
     let url = SOURCE;
@@ -56,7 +55,6 @@ export function StatsScreen({ gameId }: { gameId: string }) {
   }, [gameId]);
 
   const back = <Link href={`/games/${gameId}`} className="svb-back">‹ 24″</Link>;
-  if (!SOURCE) return <main className="svbstats"><header className="svb-top">{back}<p className="svb-msg">Collegamento a SVB Stats non configurato.</p></header></main>;
   if (!data) return <main className="svbstats"><header className="svb-top">{back}<p className="svb-msg">{error ?? "Carico le statistiche…"}</p></header></main>;
 
   const ago = lastOk ? Math.round((now - lastOk) / 1000) : null;
