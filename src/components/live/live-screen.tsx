@@ -232,6 +232,9 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
           >
             {scope === "period" ? "Quarto" : "Partita"}
           </button>
+          <Link href={`/games/${gameId}/stats`} className="btn">
+            Falli e tiri
+          </Link>
           <Link href={`/games/${gameId}/report`} className="btn primary">
             Riepilogo
           </Link>

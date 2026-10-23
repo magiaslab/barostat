@@ -1,0 +1,84 @@
+/* Pagina "Falli e tiri" (dati di SVB Stats): mockup approvato docs/mockup-barostat-riepilogo.html di SVB Stats.
+   Tutto dentro .svbstats; i colori dei falli hanno nomi propri per non toccare --f1/--f2/--f3 delle fasce dei 24″. */
+.svbstats {
+  --foul2: #F2C14E; --foul3: #FF9A3D; --foul4: #FF4D5E;
+  min-height: 100dvh; display: grid; grid-template-rows: auto auto minmax(0, 1fr); gap: 10px;
+  padding: 10px max(16px, env(safe-area-inset-left, 0px)) 16px max(16px, env(safe-area-inset-right, 0px));
+  background: var(--ground); color: var(--ink); font-family: var(--body);
+}
+.svbstats button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; touch-action: manipulation; }
+.svb-top { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 12px; background: var(--panel); border-radius: 14px; padding: 8px 12px; }
+.svb-back { min-height: 52px; padding: 0 16px; border-radius: 11px; background: var(--panel-2); font-weight: 600; display: inline-flex; align-items: center; color: var(--ink); text-decoration: none; }
+.svb-msg { color: var(--ink-2); margin: 0; }
+.svb-msg.small { font-size: 11px; color: var(--ink-3); }
+.svb-score { display: flex; align-items: center; justify-content: center; gap: 14px; min-width: 0; }
+.svb-score .t { font-family: var(--display); font-weight: 600; font-size: 18px; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.svb-score .us { color: var(--us); } .svb-score .them { color: var(--them); }
+.svb-score .n { font-family: var(--display); font-weight: 700; font-size: 44px; line-height: 1; font-variant-numeric: tabular-nums; }
+.svb-score .q { text-align: center; color: var(--ink-2); font-size: 12px; line-height: 1.2; min-width: 80px; }
+.svb-score .q b { display: block; font-family: var(--display); font-size: 22px; color: var(--ink); font-weight: 600; font-variant-numeric: tabular-nums; }
+.svb-live { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-2); white-space: nowrap; }
+.svb-live .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--win); }
+.svb-live .dot.stale { background: var(--foul2); } .svb-live .dot.done { background: var(--ink-3); }
+.svb-tabs { display: none; }
+.svb-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, .9fr) minmax(0, 1fr); gap: 10px; min-height: 0; }
+.svb-col { background: var(--panel); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; min-height: 0; min-width: 0; overflow: hidden; }
+.svb-col.c-team { overflow: auto; }
+.svb-col h2 { margin: 0; font-family: var(--display); font-weight: 600; font-size: 18px; letter-spacing: .04em; text-transform: uppercase; display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.svb-col h2.us { color: var(--us); } .svb-col h2.them { color: var(--them); }
+.svb-col h2 small { font-family: var(--body); font-size: 12px; letter-spacing: 0; text-transform: none; color: var(--ink-2); font-weight: 500; }
+.svb-rows { display: grid; gap: 4px; overflow-y: auto; min-height: 0; flex: 1 1 auto; align-content: start; }
+.svb-row { display: grid; grid-template-columns: 44px minmax(0, 1fr) 50px 60px; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 12px; background: var(--panel-2); }
+.svb-row .num { font-family: var(--display); font-weight: 700; font-size: 28px; text-align: center; line-height: 1; }
+.svb-row .nm { font-weight: 600; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.svb-row .nm small { display: block; font-weight: 400; color: var(--ink-2); font-size: 12px; margin-top: 2px; }
+.svb-row .nm small b { color: var(--ink); font-weight: 600; }
+.svb-row.on .nm::before { content: ""; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--win); margin-right: 6px; vertical-align: middle; }
+.svb-row .fouls, .svb-row .min { text-align: right; font-family: var(--display); line-height: 1; }
+.svb-row .fouls b { font-size: 28px; font-weight: 700; }
+.svb-row .min { font-size: 22px; font-weight: 600; }
+.svb-row small { display: block; font-family: var(--body); font-size: 10px; color: var(--ink-3); font-weight: 400; margin-top: 2px; }
+.svb-row.f2 { box-shadow: inset 5px 0 0 var(--foul2); } .svb-row.f2 .fouls b { color: var(--foul2); }
+.svb-row.f3 { box-shadow: inset 5px 0 0 var(--foul3); } .svb-row.f3 .fouls b { color: var(--foul3); }
+.svb-row.f4, .svb-row.f5 { box-shadow: inset 5px 0 0 var(--foul4); } .svb-row.f4 .fouls b, .svb-row.f5 .fouls b { color: var(--foul4); }
+.svb-row.f5 { background: color-mix(in srgb, var(--foul4) 22%, var(--panel-2)); }
+.svb-cards { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 6px; flex: 0 0 auto; }
+.svb-card { background: var(--panel-2); border-radius: 12px; padding: 8px 10px; display: grid; gap: 2px; border: 2px solid transparent; }
+.svb-card small { font-size: 11px; color: var(--ink-2); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+.svb-card b { font-family: var(--display); font-weight: 700; font-size: 34px; line-height: 1; }
+.svb-card b.small { font-size: 22px; white-space: nowrap; }
+.svb-card em { font-style: normal; font-size: 12px; color: var(--ink-2); }
+.svb-card.near { border-color: var(--foul2); } .svb-card.near b, .svb-card.near em { color: var(--foul2); }
+.svb-card.bonus { border-color: var(--foul4); background: color-mix(in srgb, var(--foul4) 18%, var(--panel-2)); } .svb-card.bonus b, .svb-card.bonus em { color: var(--foul4); }
+.svb-card.zero b { color: var(--foul4); }
+.svb-line { display: grid; grid-template-columns: 76px minmax(0, 1fr) 64px 64px; gap: 8px; align-items: center; padding: 4px 0; }
+.svb-line .lab { color: var(--ink-2); font-size: 14px; }
+.svb-line .bars { display: grid; gap: 4px; }
+.svb-line .bars i { display: block; height: 10px; border-radius: 6px; }
+.svb-line .bars i.us { background: var(--us); } .svb-line .bars i.them { background: var(--them); }
+.svb-line .v { font-family: var(--display); font-size: 24px; font-weight: 600; text-align: right; }
+.svb-line .v.us { color: var(--us); } .svb-line .v.them { color: var(--them); }
+.svb-line .v small { display: block; font-family: var(--body); font-size: 11px; color: var(--ink-2); font-weight: 400; }
+.svb-q { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.svb-q th, .svb-q td { padding: 6px 4px; text-align: center; border-bottom: 1px solid var(--line-soft); font-size: 16px; }
+.svb-q th { font-size: 11px; color: var(--ink-2); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.svb-q td:first-child { text-align: left; font-weight: 600; }
+.svb-q .us { color: var(--us); } .svb-q .them { color: var(--them); }
+.svb-q td b { font-family: var(--display); font-size: 24px; }
+@media (max-width: 1100px) and (min-width: 861px) {
+  .svb-row { grid-template-columns: 40px minmax(0, 1fr) 44px 56px; }
+  .svb-row .num { font-size: 24px; } .svb-row .min { font-size: 19px; }
+  .svb-card b { font-size: 28px; } .svb-card em { display: none; }
+}
+@media (max-width: 860px) {
+  .svbstats { grid-template-rows: auto auto auto; }
+  .svb-top { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "back live" "score score"; }
+  .svb-back { grid-area: back; justify-self: start; } .svb-live { grid-area: live; } .svb-score { grid-area: score; justify-content: space-between; }
+  .svb-score .t { display: none; } .svb-score .n { font-size: 40px; }
+  .svb-tabs { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--panel); border-radius: 12px; padding: 4px; gap: 4px; position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; }
+  .svb-tabs button { min-height: 48px; border-radius: 9px; font-family: var(--display); font-weight: 600; font-size: 17px; letter-spacing: .04em; text-transform: uppercase; color: var(--ink-2); }
+  .svb-tabs button.on { background: var(--panel-2); color: var(--ink); }
+  .svb-body { grid-template-columns: minmax(0, 1fr); }
+  .svb-col { overflow: visible; } .svb-rows { overflow: visible; }
+  .svb-body[data-tab="us"] .svb-col:not(.c-us), .svb-body[data-tab="team"] .svb-col:not(.c-team), .svb-body[data-tab="them"] .svb-col:not(.c-them) { display: none; }
+}
