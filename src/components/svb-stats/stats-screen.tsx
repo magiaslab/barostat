@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { getGame } from "@/lib/local/dexie";
+
 /**
  * Pagina aggiunta per il 2° assistente: falli, minuti e percentuali della partita in corso.
  * I dati arrivano da SVB Stats (il tablet di chi registra le statistiche), dal riepilogo pubblico
@@ -32,9 +34,10 @@ export function StatsScreen({ gameId }: { gameId: string }) {
     if (!SOURCE) return;
     let stop = false;
     let timer: ReturnType<typeof setTimeout>;
+    let url = SOURCE;
     const load = async () => {
       try {
-        const res = await fetch(SOURCE, { cache: "no-store" });
+        const res = await fetch(url, { cache: "no-store" });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error ?? "Statistiche non disponibili");
         setData(json);
@@ -46,10 +49,11 @@ export function StatsScreen({ gameId }: { gameId: string }) {
         if (!stop) timer = setTimeout(load, 8_000);
       }
     };
-    void load();
+    // Sempre la partita di questa schermata: SVB Stats risponde con la gara dello stesso giorno
+    void getGame(gameId).then((g) => { if (g?.date) url = `${SOURCE}?date=${encodeURIComponent(g.date)}`; }).catch(() => undefined).finally(() => { void load(); });
     const t = setInterval(() => setNow(Date.now()), 1000);
     return () => { stop = true; clearTimeout(timer); clearInterval(t); };
-  }, []);
+  }, [gameId]);
 
   const back = <Link href={`/games/${gameId}`} className="svb-back">‹ 24″</Link>;
   if (!SOURCE) return <main className="svbstats"><header className="svb-top">{back}<p className="svb-msg">Collegamento a SVB Stats non configurato.</p></header></main>;
