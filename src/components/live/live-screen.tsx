@@ -39,6 +39,24 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
   const opponent = game?.opponent ?? "Loro";
   const [period, setPeriod] = useState<Period>(0);
   const [scope, setScope] = useState<"period" | "game">("period");
+  // Quarto e vista restano quelli scelti anche dopo essere passati da Falli e tiri e tornati qui
+  const viewKey = `barostat-view-${gameId}`;
+  useEffect(() => {
+    try {
+      const saved = JSON.parse(sessionStorage.getItem(viewKey) ?? "null") as { period?: number; scope?: string } | null;
+      if (saved && typeof saved.period === "number" && saved.period >= 0 && saved.period <= 4) setPeriod(saved.period as Period);
+      if (saved?.scope === "period" || saved?.scope === "game") setScope(saved.scope);
+    } catch {
+      // niente: si parte dal 1° quarto
+    }
+  }, [viewKey]);
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(viewKey, JSON.stringify({ period, scope }));
+    } catch {
+      // niente
+    }
+  }, [viewKey, period, scope]);
   const scopedPeriod = scope === "period" ? period : undefined;
   const {
     events,
