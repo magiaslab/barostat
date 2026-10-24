@@ -19,14 +19,18 @@ import { useGameSync } from "@/lib/local/use-sync";
 import {
   PERIODS,
   PERIOD_LABEL,
+  cellEvent,
   type Band,
-  type Outcome,
+  type Cell,
   type Period,
   type Team,
 } from "@/lib/types";
 
 type LiveScreenProps = {
   gameId: string;
+  /** Quarto e vista da riprendere tornando da Falli e tiri. */
+  initialPeriod?: Period;
+  initialScope?: "period" | "game";
 };
 
 function shortName(name: string): string {
@@ -34,29 +38,11 @@ function shortName(name: string): string {
   return name.split(/\s+/)[0] ?? name;
 }
 
-export function LiveScreen({ gameId }: LiveScreenProps) {
+export function LiveScreen({ gameId, initialPeriod = 0, initialScope = "period" }: LiveScreenProps) {
   const { game, ready: gameReady } = useGame(gameId);
   const opponent = game?.opponent ?? "Loro";
-  const [period, setPeriod] = useState<Period>(0);
-  const [scope, setScope] = useState<"period" | "game">("period");
-  // Quarto e vista restano quelli scelti anche dopo essere passati da Falli e tiri e tornati qui
-  const viewKey = `barostat-view-${gameId}`;
-  useEffect(() => {
-    try {
-      const saved = JSON.parse(sessionStorage.getItem(viewKey) ?? "null") as { period?: number; scope?: string } | null;
-      if (saved && typeof saved.period === "number" && saved.period >= 0 && saved.period <= 4) setPeriod(saved.period as Period);
-      if (saved?.scope === "period" || saved?.scope === "game") setScope(saved.scope);
-    } catch {
-      // niente: si parte dal 1° quarto
-    }
-  }, [viewKey]);
-  useEffect(() => {
-    try {
-      sessionStorage.setItem(viewKey, JSON.stringify({ period, scope }));
-    } catch {
-      // niente
-    }
-  }, [viewKey, period, scope]);
+  const [period, setPeriod] = useState<Period>(initialPeriod);
+  const [scope, setScope] = useState<"period" | "game">(initialScope);
   const scopedPeriod = scope === "period" ? period : undefined;
   const {
     events,
@@ -132,22 +118,22 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
     );
   }
 
-  function add(team: Team, band: Band, outcome: Outcome) {
+  function add(team: Team, band: Band, cell: Cell) {
     if (gridReadOnly) return;
-    void append({ period, team, band, outcome });
+    void append({ period, team, band, ...cellEvent(cell) });
   }
 
   async function remove(
     team: Team,
     band: Band,
-    outcome: Outcome,
+    cell: Cell,
   ): Promise<boolean> {
     if (gridReadOnly) return false;
     const retracted = await removeMatching({
       period,
       team,
       band,
-      outcome,
+      ...cellEvent(cell),
     });
     return retracted !== null;
   }
@@ -213,16 +199,16 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
             name={usName}
             stats={us}
             disabled={gridOff}
-            onAdd={(band, outcome) => add("us", band, outcome)}
-            onRemove={(band, outcome) => remove("us", band, outcome)}
+            onAdd={(band, cell) => add("us", band, cell)}
+            onRemove={(band, cell) => remove("us", band, cell)}
           />
           <TeamPanel
             team="them"
             name={opponent}
             stats={them}
             disabled={gridOff}
-            onAdd={(band, outcome) => add("them", band, outcome)}
-            onRemove={(band, outcome) => remove("them", band, outcome)}
+            onAdd={(band, cell) => add("them", band, cell)}
+            onRemove={(band, cell) => remove("them", band, cell)}
           />
         </main>
       </div>
@@ -250,7 +236,7 @@ export function LiveScreen({ gameId }: LiveScreenProps) {
           >
             {scope === "period" ? "Quarto" : "Partita"}
           </button>
-          <Link href={`/games/${gameId}/stats`} className="btn">
+          <Link href={`/games/${gameId}/stats?q=${period}&v=${scope}`} className="btn">
             Falli e tiri
           </Link>
           <Link href={`/games/${gameId}/report`} className="btn primary">

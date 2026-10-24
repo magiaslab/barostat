@@ -1,14 +1,16 @@
 import {
   BANDS,
+  CELLS,
   PERIODS,
+  cellOf,
   type Band,
+  type Cell,
   type GameEvent,
-  type Outcome,
   type Period,
   type Team,
 } from "./types";
 
-export type OutcomeCounts = { readonly [O in Outcome]: number };
+export type OutcomeCounts = { readonly [C in Cell]: number };
 export type GridCounts = { readonly [B in Band]: OutcomeCounts };
 
 export type BandPoints = { readonly [B in Band]: number };
@@ -33,11 +35,11 @@ export type Score = {
   them: number;
 };
 
-function emptyOutcomes(): { [O in Outcome]: number } {
-  return { 0: 0, 1: 0, 2: 0, 3: 0 };
+function emptyOutcomes(): { [C in Cell]: number } {
+  return { 0: 0, 1: 0, 2: 0, 3: 0, ro: 0 };
 }
 
-function emptyGrid(): { [B in Band]: { [O in Outcome]: number } } {
+function emptyGrid(): { [B in Band]: { [C in Cell]: number } } {
   return { 0: emptyOutcomes(), 1: emptyOutcomes(), 2: emptyOutcomes() };
 }
 
@@ -61,15 +63,15 @@ function isGrid(source: readonly GameEvent[] | GridCounts): source is GridCounts
   return !Array.isArray(source);
 }
 
-/** L'esito è già il valore in punti: TL sbagliato vale 0. */
-export function pointsOf(outcome: Outcome): number {
-  return outcome;
+/** L'esito è già il valore in punti: TL sbagliato vale 0, RO vale 2. */
+export function pointsOf(cell: Cell): number {
+  return cell === "ro" ? 2 : cell;
 }
 
 function bandTotal(counts: OutcomeCounts): number {
   let total = 0;
-  for (const outcome of [3, 2, 1, 0] as const) {
-    total += counts[outcome] * pointsOf(outcome);
+  for (const cell of CELLS) {
+    total += counts[cell] * pointsOf(cell);
   }
   return total;
 }
@@ -102,7 +104,7 @@ export function gridCounts(
 
   for (const event of events) {
     if (!matches(event, team, period, gameId)) continue;
-    grid[event.band][event.outcome] += 1;
+    grid[event.band][cellOf(event)] += 1;
   }
 
   return grid;
@@ -111,33 +113,33 @@ export function gridCounts(
 export function cellCount(
   grid: GridCounts,
   band: Band,
-  outcome: Outcome,
+  outcome: Cell,
 ): number;
 export function cellCount(
   events: readonly GameEvent[],
   team: Team,
   band: Band,
-  outcome: Outcome,
+  outcome: Cell,
   period?: Period,
   gameId?: string,
 ): number;
 export function cellCount(
   source: readonly GameEvent[] | GridCounts,
   teamOrBand: Team | Band,
-  bandOrOutcome: Band | Outcome,
-  outcome?: Outcome,
+  bandOrOutcome: Band | Cell,
+  outcome?: Cell,
   period?: Period,
   gameId?: string,
 ): number {
   if (isGrid(source)) {
-    return source[teamOrBand as Band][bandOrOutcome as Outcome];
+    return source[teamOrBand as Band][bandOrOutcome as Cell];
   }
   return gridCounts(
     source,
     teamOrBand as Team,
     period,
     gameId,
-  )[bandOrOutcome as Band][outcome as Outcome];
+  )[bandOrOutcome as Band][outcome as Cell];
 }
 
 export function pointsByBand(

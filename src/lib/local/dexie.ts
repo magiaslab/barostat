@@ -23,6 +23,8 @@ export type EventDraft = {
   team: Team;
   band: Band;
   outcome: Outcome;
+  /** Colonna RO: 2P dopo rimbalzo offensivo. */
+  putback?: boolean;
 };
 
 export type GameDraft = {
@@ -308,6 +310,7 @@ export async function removeLastMatching(
   team: Team,
   band: Band,
   outcome: Outcome,
+  putback = false,
 ): Promise<GameEvent | null> {
   const store = getDb();
   const game = await store.games.get(gameId);
@@ -320,7 +323,8 @@ export async function removeLastMatching(
         event.period === period &&
         event.team === team &&
         event.band === band &&
-        event.outcome === outcome,
+        event.outcome === outcome &&
+        Boolean(event.putback) === putback,
     );
     const last = live.at(-1);
     if (!last) return null;

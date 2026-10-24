@@ -49,6 +49,13 @@ describe("parseSyncPayload", () => {
     });
   });
 
+  test("RO: accetta un 2P da rimbalzo offensivo, rifiuta RO su altri esiti", () => {
+    const ro = { ...event, outcome: 2 as const, putback: true };
+    expect(parseSyncPayload({ game, events: [ro] })?.events[0]?.putback).toBe(true);
+    expect(parseSyncPayload({ game, events: [{ ...event, outcome: 3, putback: true }] })).toBeNull();
+    expect(parseSyncPayload({ game, events: [{ ...event, putback: "sì" }] })).toBeNull();
+  });
+
   test("rifiuta snapshot senza games o con evento orfano", () => {
     expect(parseSyncSnapshot({ events: [event] })).toBeNull();
     expect(parseSyncSnapshot({ games: [game], events: [{ ...event, gameId: "altro" }] })).toBeNull();

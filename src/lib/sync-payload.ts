@@ -128,6 +128,10 @@ function parseEvent(input: unknown, expectedGameId?: string): GameEvent | null {
   const gameId = e.gameId;
   if (!isPeriod(e.period) || !isTeam(e.team) || !isBand(e.band)) return null;
   if (!isOutcome(e.outcome)) return null;
+  // RO: solo un 2P può essere da rimbalzo offensivo; assente sugli eventi vecchi
+  if (e.putback !== undefined && e.putback !== null && typeof e.putback !== "boolean") return null;
+  const putback = e.putback === true;
+  if (putback && e.outcome !== 2) return null;
   if (!isIntegerNumber(e.tsClient) || !isIntegerNumber(e.seq)) return null;
   if (e.seq < 1) return null;
   if (e.deletedAt !== null && !isIntegerNumber(e.deletedAt)) return null;
@@ -138,6 +142,7 @@ function parseEvent(input: unknown, expectedGameId?: string): GameEvent | null {
     team: e.team,
     band: e.band,
     outcome: e.outcome,
+    ...(putback ? { putback: true } : {}),
     tsClient: e.tsClient,
     seq: e.seq,
     deletedAt: e.deletedAt,

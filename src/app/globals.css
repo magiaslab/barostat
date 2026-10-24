@@ -438,7 +438,7 @@ body:has(.live) {
 
 .live .grid {
   display: grid;
-  grid-template-columns: 58px repeat(4, 1fr) 48px;
+  grid-template-columns: 58px repeat(5, 1fr) 48px;
   grid-template-rows: auto repeat(3, 1fr);
   gap: 4px;
   padding: 6px 8px;
@@ -459,6 +459,11 @@ body:has(.live) {
 
 .live .colhead.miss {
   color: #5a6675;
+}
+
+/* RO: canestro da 2 dopo rimbalzo offensivo, separato da TL ✕ */
+.live .colhead.ro {
+  margin-left: 6px;
 }
 
 .live .rowlab {
@@ -539,6 +544,10 @@ body:has(.live) {
 
 .live .cell.miss {
   border-style: dashed;
+}
+
+.live .cell.ro {
+  margin-left: 6px;
 }
 
 .live .panel.us .cell.miss.has,
@@ -712,7 +721,7 @@ body:has(.live) {
   }
 
   .live .grid {
-    grid-template-columns: 74px repeat(4, 1fr) 60px;
+    grid-template-columns: 74px repeat(5, 1fr) 60px;
     gap: 6px;
     padding: 10px;
   }

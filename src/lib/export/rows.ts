@@ -61,7 +61,7 @@ export function eventRows(
       PERIOD_LABEL[event.period],
       event.team === "us" ? "noi" : "loro",
       EXCEL_BAND[event.band],
-      EXCEL_OUTCOME[event.outcome],
+      event.putback ? "2p-ro" : EXCEL_OUTCOME[event.outcome],
       String(event.outcome),
     ]);
 }

@@ -5,9 +5,9 @@ import { useRef } from "react";
 import { vibrate } from "@/lib/haptics";
 import {
   BAND_LABEL,
-  OUTCOME_LABEL,
+  CELL_LABEL,
   type Band,
-  type Outcome,
+  type Cell,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
 
@@ -16,7 +16,7 @@ const LONG_PRESS_MS = 480;
 type StatCellProps = {
   teamName: string;
   band: Band;
-  outcome: Outcome;
+  cell: Cell;
   count: number;
   disabled: boolean;
   onAdd: () => void;
@@ -26,7 +26,7 @@ type StatCellProps = {
 export function StatCell({
   teamName,
   band,
-  outcome,
+  cell,
   count,
   disabled,
   onAdd,
@@ -34,8 +34,8 @@ export function StatCell({
 }: StatCellProps) {
   const timer = useRef<number>(0);
   const longFired = useRef(false);
-  const miss = outcome === 0;
-  const label = `${teamName} ${BAND_LABEL[band]} ${miss ? "tiro libero sbagliato" : OUTCOME_LABEL[outcome]}`;
+  const miss = cell === 0;
+  const label = `${teamName} ${BAND_LABEL[band]} ${miss ? "tiro libero sbagliato" : cell === "ro" ? "canestro da rimbalzo offensivo" : CELL_LABEL[cell]}`;
 
   function clearTimer() {
     window.clearTimeout(timer.current);
@@ -45,7 +45,7 @@ export function StatCell({
   return (
     <button
       type="button"
-      className={cn("cell", miss && "miss", count > 0 && "has")}
+      className={cn("cell", miss && "miss", cell === "ro" && "ro", count > 0 && "has")}
       disabled={disabled}
       aria-label={label}
       onContextMenu={(event) => event.preventDefault()}

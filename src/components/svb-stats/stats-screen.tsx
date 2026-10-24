@@ -23,7 +23,7 @@ const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, 
 const clock = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
 const pct = (m: number, a: number) => (a ? Math.round((m / a) * 100) : null);
 
-export function StatsScreen({ gameId }: { gameId: string }) {
+export function StatsScreen({ gameId, back: backQuery = "" }: { gameId: string; back?: string }) {
   const [data, setData] = useState<LiveSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [lastOk, setLastOk] = useState<number | null>(null);
@@ -54,7 +54,7 @@ export function StatsScreen({ gameId }: { gameId: string }) {
     return () => { stop = true; clearTimeout(timer); clearInterval(t); };
   }, [gameId]);
 
-  const back = <Link href={`/games/${gameId}`} className="svb-back">‹ 24″</Link>;
+  const back = <Link href={`/games/${gameId}${backQuery ? `?${backQuery}` : ""}`} className="svb-back">‹ 24″</Link>;
   if (!data) return <main className="svbstats"><header className="svb-top">{back}<p className="svb-msg">{error ?? "Carico le statistiche…"}</p></header></main>;
 
   const ago = lastOk ? Math.round((now - lastOk) / 1000) : null;

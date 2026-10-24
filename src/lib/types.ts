@@ -12,6 +12,8 @@ export type GameEvent = {
   team: Team;
   band: Band;
   outcome: Outcome;
+  /** Canestro da 2 dopo rimbalzo offensivo (colonna RO). Vale come un 2P; assente sugli eventi vecchi. */
+  putback?: boolean;
   tsClient: number;
   seq: number;
   deletedAt: number | null;
@@ -62,6 +64,24 @@ export const OUTCOME_LABEL: { readonly [O in Outcome]: string } = {
   1: "TL",
   0: "TL ✕",
 };
+
+/** Colonne della griglia: gli esiti più RO, il canestro da 2 dopo rimbalzo offensivo. */
+export type Cell = Outcome | "ro";
+export const CELLS: readonly Cell[] = [3, 2, 1, 0, "ro"];
+
+export const CELL_LABEL: { readonly [C in Cell]: string } = {
+  ...OUTCOME_LABEL,
+  ro: "RO",
+};
+
+export function cellOf(event: Pick<GameEvent, "outcome" | "putback">): Cell {
+  return event.putback ? "ro" : event.outcome;
+}
+
+/** Esito salvato per una colonna: RO è un 2P con putback. */
+export function cellEvent(cell: Cell): { outcome: Outcome; putback: boolean } {
+  return cell === "ro" ? { outcome: 2, putback: true } : { outcome: cell, putback: false };
+}
 
 export const VENUES: readonly Venue[] = ["home", "away"];
 export const COMPETITIONS: readonly Competition[] = [

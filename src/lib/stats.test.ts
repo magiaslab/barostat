@@ -98,9 +98,9 @@ describe("nessun evento", () => {
 
   test("griglia e totali a zero", () => {
     expect(gridCounts(none, "us")).toEqual({
-      0: { 0: 0, 1: 0, 2: 0, 3: 0 },
-      1: { 0: 0, 1: 0, 2: 0, 3: 0 },
-      2: { 0: 0, 1: 0, 2: 0, 3: 0 },
+      0: { 0: 0, 1: 0, 2: 0, 3: 0, ro: 0 },
+      1: { 0: 0, 1: 0, 2: 0, 3: 0, ro: 0 },
+      2: { 0: 0, 1: 0, 2: 0, 3: 0, ro: 0 },
     });
     expect(pointsByBand(none, "us")).toEqual({ 0: 0, 1: 0, 2: 0 });
     expect(totalPoints(none, "us")).toBe(0);
@@ -257,5 +257,21 @@ describe("seed del mockup 31–30", () => {
         event("us", 0, 2, { period: 3, deletedAt: 1 }),
       ]),
     ).toEqual([0, 1]);
+  });
+});
+
+describe("RO: canestro da 2 dopo rimbalzo offensivo", () => {
+  test("vale 2 punti, ha la sua colonna e non entra nei 2P né nei liberi", () => {
+    const events = [
+      { ...event("us", 1, 2), putback: true },
+      event("us", 1, 2),
+      event("us", 1, 1),
+    ];
+    const grid = gridCounts(events, "us");
+    expect(grid[1].ro).toBe(1);
+    expect(grid[1][2]).toBe(1);
+    expect(pointsOf("ro")).toBe(2);
+    expect(totalPoints(events, "us")).toBe(5);
+    expect(freeThrows(events, "us")).toEqual({ made: 1, missed: 0, attempted: 1 });
   });
 });

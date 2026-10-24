@@ -71,6 +71,11 @@ self.addEventListener("fetch", (event) => {
       .catch(async () => {
         const cached = await caches.match(request);
         if (cached) return cached;
+        // Senza rete: la stessa pagina anche se cambia solo ?q= (quarto da riprendere)
+        if (request.mode === "navigate") {
+          const samePage = await caches.match(request, { ignoreSearch: true });
+          if (samePage) return samePage;
+        }
         if (request.mode === "navigate") return caches.match("/games");
         return Response.error();
       }),

@@ -6,10 +6,10 @@ import {
   BANDS,
   BAND_CLOCK,
   BAND_LABEL,
-  OUTCOMES,
-  OUTCOME_LABEL,
+  CELLS,
+  CELL_LABEL,
   type Band,
-  type Outcome,
+  type Cell,
   type Team,
 } from "@/lib/types";
 import { cn } from "@/lib/utils";
@@ -19,8 +19,8 @@ type TeamPanelProps = {
   name: string;
   stats: TeamStats;
   disabled: boolean;
-  onAdd: (band: Band, outcome: Outcome) => void;
-  onRemove: (band: Band, outcome: Outcome) => Promise<boolean>;
+  onAdd: (band: Band, cell: Cell) => void;
+  onRemove: (band: Band, cell: Cell) => Promise<boolean>;
 };
 
 export function TeamPanel({
@@ -41,12 +41,12 @@ export function TeamPanel({
       </div>
       <div className="grid">
         <div className="colhead" />
-        {OUTCOMES.map((outcome) => (
+        {CELLS.map((cell) => (
           <div
-            key={outcome}
-            className={cn("colhead", outcome === 0 && "miss")}
+            key={cell}
+            className={cn("colhead", cell === 0 && "miss", cell === "ro" && "ro")}
           >
-            {OUTCOME_LABEL[outcome]}
+            {CELL_LABEL[cell]}
           </div>
         ))}
         <div className="colhead">pt</div>
@@ -87,8 +87,8 @@ function BandRow({
   band: Band;
   stats: TeamStats;
   disabled: boolean;
-  onAdd: (band: Band, outcome: Outcome) => void;
-  onRemove: (band: Band, outcome: Outcome) => Promise<boolean>;
+  onAdd: (band: Band, cell: Cell) => void;
+  onRemove: (band: Band, cell: Cell) => Promise<boolean>;
 }) {
   return (
     <>
@@ -96,16 +96,16 @@ function BandRow({
         <span className="t">{BAND_LABEL[band]}</span>
         <span className="n">{BAND_CLOCK[band]}</span>
       </div>
-      {OUTCOMES.map((outcome) => (
+      {CELLS.map((cell) => (
         <StatCell
-          key={outcome}
+          key={cell}
           teamName={teamName}
           band={band}
-          outcome={outcome}
-          count={stats.grid[band][outcome]}
+          cell={cell}
+          count={stats.grid[band][cell]}
           disabled={disabled}
-          onAdd={() => onAdd(band, outcome)}
-          onRemove={() => onRemove(band, outcome)}
+          onAdd={() => onAdd(band, cell)}
+          onRemove={() => onRemove(band, cell)}
         />
       ))}
       <div className="rowtot">

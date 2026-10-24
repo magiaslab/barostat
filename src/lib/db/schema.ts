@@ -1,5 +1,6 @@
 import {
   bigint,
+  boolean,
   index,
   integer,
   pgTable,
@@ -32,6 +33,8 @@ export const events = pgTable(
     team: text("team").notNull(),
     band: smallint("band").notNull(),
     outcome: smallint("outcome").notNull(),
+    /** Colonna RO: canestro da 2 dopo rimbalzo offensivo (outcome 2). */
+    putback: boolean("putback").notNull().default(false),
     tsClient: bigint("ts_client", { mode: "number" }).notNull(),
     seq: integer("seq").notNull(),
     deletedAt: bigint("deleted_at", { mode: "number" }),

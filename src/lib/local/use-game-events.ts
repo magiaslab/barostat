@@ -21,7 +21,7 @@ export type UseGameEventsResult = {
   append: (draft: Omit<EventDraft, "gameId">) => Promise<GameEvent>;
   undo: () => Promise<GameEvent | null>;
   removeMatching: (
-    match: Pick<GameEvent, "period" | "team" | "band" | "outcome">,
+    match: Pick<GameEvent, "period" | "team" | "band" | "outcome" | "putback">,
   ) => Promise<GameEvent | null>;
   canUndo: boolean;
   ready: boolean;
@@ -89,6 +89,7 @@ export function useGameEvents(
       team: Team;
       band: Band;
       outcome: Outcome;
+      putback?: boolean;
     }) => {
       const retracted = await removeLastMatching(
         gameId,
@@ -96,6 +97,7 @@ export function useGameEvents(
         match.team,
         match.band,
         match.outcome,
+        Boolean(match.putback),
       );
       if (retracted) {
         setSnapshot((prev) => {
