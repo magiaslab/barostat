@@ -65,6 +65,15 @@
 .svb-q td:first-child { text-align: left; font-weight: 600; }
 .svb-q .us { color: var(--us); } .svb-q .them { color: var(--them); }
 .svb-q td b { font-family: var(--display); font-size: 24px; }
+/* Obiettivi del coach (da SVB Stats) */
+.svb-goals { display: grid; gap: 4px; margin-bottom: 6px; }
+.svb-goal { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 6px 8px; border-radius: 10px; background: var(--panel-2); border: 2px solid transparent; }
+.svb-goal .mark { font-weight: 700; font-size: 18px; text-align: center; }
+.svb-goal .txt { font-size: 14px; }
+.svb-goal b { font-family: var(--display); font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.svb-goal.ok .mark, .svb-goal.ok b { color: var(--win); }
+.svb-goal.ko { border-color: var(--foul4); } .svb-goal.ko .mark, .svb-goal.ko b { color: var(--foul4); }
+.svb-goal.open .mark { color: var(--ink-3); }
 @media (max-width: 1100px) and (min-width: 861px) {
   .svb-row { grid-template-columns: 40px minmax(0, 1fr) 44px 56px; }
   .svb-row .num { font-size: 24px; } .svb-row .min { font-size: 19px; }

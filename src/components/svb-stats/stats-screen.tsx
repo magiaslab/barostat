@@ -16,7 +16,9 @@ type LiveTeam = {
   name: string; pts: number; teamFouls: number; timeoutsLeft: number; tech: { c: number; b: number; out: boolean }; periodPoints: number[];
   shooting: { m2: number; a2: number; m3: number; a3: number; mf: number; af: number; tov: number }; players: LivePlayer[];
 };
-type LiveSummary = { title: string; home: boolean; period: number; clock: number; closed: boolean; svb: LiveTeam; opp: LiveTeam };
+/** Obiettivi fissati dal coach in SVB Stats: "ok" rispettato/centrato, "ko" mancato, "open" ancora da raggiungere. */
+type Goal = { metric: string; text: string; unit: string; dir: "max" | "min"; target: number; value: number; status: "ok" | "ko" | "open" };
+type LiveSummary = { title: string; home: boolean; period: number; clock: number; closed: boolean; svb: LiveTeam; opp: LiveTeam; goals?: Goal[] };
 
 const SOURCE = "/api/svb-stats";
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
@@ -118,6 +120,18 @@ export function StatsScreen({ gameId, back: backQuery = "" }: { gameId: string; 
       <div className="svb-body" data-tab={tab}>
         {teamCol(data.svb, "us")}
         <section className="svb-col c-team">
+          {data.goals && data.goals.length > 0 && (
+            <div className="svb-goals">
+              <h2>Obiettivi<small>{data.goals.filter((g) => g.status === "ok").length} su {data.goals.length}</small></h2>
+              {data.goals.map((g) => (
+                <div key={g.metric} className={`svb-goal ${g.status}`}>
+                  <span className="mark" aria-hidden>{g.status === "ok" ? "✓" : g.status === "ko" ? "✕" : "…"}</span>
+                  <span className="txt">{g.text}</span>
+                  <b>{g.value}{g.unit}</b>
+                </div>
+              ))}
+            </div>
+          )}
           <h2>Squadre<small>tiro e punti per quarto</small></h2>
           {line("Da 2", [s.m2, s.a2], [o.m2, o.a2])}
           {line("Da 3", [s.m3, s.a3], [o.m3, o.a3])}
