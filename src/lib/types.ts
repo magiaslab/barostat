@@ -62,7 +62,7 @@ export const OUTCOME_LABEL: { readonly [O in Outcome]: string } = {
   3: "3P",
   2: "2P",
   1: "TL",
-  0: "TL ✕",
+  0: "NO",
 };
 
 /** Colonne della griglia: gli esiti più RO, il canestro da 2 dopo rimbalzo offensivo. */

@@ -461,7 +461,7 @@ body:has(.live) {
   color: #5a6675;
 }
 
-/* RO: canestro da 2 dopo rimbalzo offensivo, separato da TL ✕ */
+/* RO: canestro da 2 dopo rimbalzo offensivo, separato da NO (TL sbagliato) */
 .live .colhead.ro {
   margin-left: 6px;
 }
